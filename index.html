@@ -46,15 +46,17 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 
 /* Sol e lua */
 #sky { padding-top: 10px; padding-bottom: 10px; }
-.sunRow { margin: 6px 0 7px; font-size: 20px; }
-.sunItem .muted { font-size: 14px; display: block; margin-bottom: 2px; }
-.moonRow { margin-bottom: 0; padding-top: 7px; }
+.sunRow { margin: 6px 0 3px; font-size: 20px; }
+.sunItem .muted { font-size: 14px; display: block; margin-bottom: 1px; }
+.moonRow { margin-bottom: 0; padding-top: 4px; }
 #moonCanvas { width: 20px; height: 20px; vertical-align: -2px; margin-right: 4px; }
 
 /* Avisos */
 .alert { margin-top: 7px; padding-left: 10px; border-left: 3px solid #3fb950; }
-/* Sem espaço para todos os avisos: some a linha de detalhe (ver fitAlerts). */
-#alerts.compact .alert .a2 { display: none; }
+/* Sem espaço para todos os avisos (ver fitAlerts), em etapas: 1) some o detalhe dos
+   avisos verdes; 2) some o detalhe de todos; 3) somem os avisos verdes. */
+#alerts.fit1 .alert.ok .a2, #alerts.fit2 .alert .a2 { display: none; }
+#alerts.fit3 .alert.ok { display: none; }
 #alerts { padding-top: 10px; padding-bottom: 8px; }
 .alert .a1 { font-size: 18px; }
 .alert .a2 { font-size: 14px; color: #8b949e; margin-top: 1px; }
@@ -597,10 +599,13 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
   }
 
   function fitAlerts() {
-    var box = $('alerts');
-    box.className = box.className.replace(' compact', '');
-    if (box.scrollHeight > box.clientHeight + 1) box.className += ' compact';
+    var box = $('alerts'), base = box.className.replace(/ fit\d/g, '');
+    box.className = base;
+    for (var step = 1; step <= 3 && box.scrollHeight > box.clientHeight + 1; step++) {
+      box.className = base + ' fit' + step + (step === 3 ? ' fit2' : '');
+    }
   }
+
 
   // 7 dias: alterna entre as cidades a cada WEEK_ROTATE segundos.
   var WEEK_ROTATE = 10;
