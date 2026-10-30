@@ -54,6 +54,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 .alert.wind .a1 { color: #e3b341; }
 .alert.windStrong { border-color: #f85149; }
 .alert.windStrong .a1 { color: #ff7b72; }
+.alert.reminder { border-color: #bc8cff; }
 
 
 /* Osório (detalhado) */
@@ -552,10 +553,29 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
     return ['ok', 'Sem rajadas fortes', 'Máxima de ' + Math.round(max) + ' km/h nas próximas ' + h.time.length + ' h'];
   }
 
+  // Lembretes fixos do config.json: {"days": ["seg", "qua", "sex"], "text": "...", "detail": "..."}.
+  var DIAS_CFG = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+  var reminders = [], alertCity = null;
+
+  function todayReminders() {
+    var today = DIAS_CFG[now().getUTCDay()], out = [];
+    for (var i = 0; i < reminders.length; i++) {
+      var r = reminders[i], days = r.days || [];
+      for (var j = 0; j < days.length; j++) {
+        if (days[j].toLowerCase().replace('á', 'a').substr(0, 3) === today) {
+          out.push(['reminder', r.text, r.detail || 'Hoje']);
+          break;
+        }
+      }
+    }
+    return out;
+  }
+
   function renderAlerts(city) {
+    alertCity = city;
     var list = $('alertList');
     list.innerHTML = '';
-    var items = [rainAlert(city), windAlert(city)];
+    var items = todayReminders().concat([rainAlert(city), windAlert(city)]);
     for (var i = 0; i < items.length; i++) {
       var a = add(list, el('div', 'alert ' + items[i][0]));
       add(a, el('div', 'a1', items[i][1]));
@@ -655,6 +675,8 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
   updateWeather();
   getJSON('/api/config', function (cfg) {
     if (cfg.camera) startCamera(cfg.camera_refresh_seconds || 5, cfg.camera_hours);
+    reminders = cfg.reminders || [];
+    if (alertCity) renderAlerts(alertCity);
   }, function () {});
 
   // O Safari do iOS 9 não tem API de tela cheia; só aberto pela Tela de Início

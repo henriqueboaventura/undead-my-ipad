@@ -553,6 +553,7 @@ class Handler(SimpleHTTPRequestHandler):
                     "camera": bool(cam.get("snapshot_url") or cam.get("rtsp_url")),
                     "camera_refresh_seconds": cam.get("refresh_seconds", 5),
                     "camera_hours": cam.get("active_hours") or None,
+                    "reminders": CONFIG.get("reminders") or [],
                     "calendar": bool((CONFIG.get("calendar") or {}).get("ics_urls")
                                      or (CONFIG.get("calendar") or {}).get("apps_script_urls")),
                 }).encode("utf-8")

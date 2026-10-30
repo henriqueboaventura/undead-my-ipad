@@ -79,6 +79,9 @@ Preencha:
   `07:30-18:00`). Fora dele a página mostra "Câmera desligada" e o ffmpeg
   não roda. Deixe `""` para a câmera ficar sempre ligada.
 - `port`: porta do painel (padrão `8090`). Mude se já estiver em uso.
+- `reminders`: lembretes fixos que aparecem no card de Avisos nos dias
+  escolhidos (`seg ter qua qui sex sab dom`). Ex.:
+  `{"days": ["seg", "qua", "sex"], "text": "Dia de lixo", "detail": "Colocar o lixo para fora"}`.
 - `cities`: cidades e coordenadas. A cidade com `"detailed": true` ganha a
   previsão completa.
 
