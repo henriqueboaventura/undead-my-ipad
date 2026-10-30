@@ -1,0 +1,31 @@
+{
+  "port": 8090,
+  "timezone": "America/Sao_Paulo",
+  "cities": [
+    {
+      "name": "Osório",
+      "lat": -29.8867,
+      "lon": -50.2697,
+      "detailed": true
+    },
+    {
+      "name": "Porto Alegre",
+      "lat": -30.0346,
+      "lon": -51.2177
+    }
+  ],
+  "calendar": {
+    "ics_urls": [],
+    "apps_script_urls": [],
+    "days": 14,
+    "max_events": 12
+  },
+  "camera": {
+    "rtsp_url": "rtsp://USUARIO:SENHA@192.168.0.69:554/stream2",
+    "snapshot_url": "",
+    "username": "",
+    "password": "",
+    "force_basic_auth": false,
+    "refresh_seconds": 5
+  }
+}

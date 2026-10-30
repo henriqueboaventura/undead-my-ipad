@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Painel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Painel">
+<style>
+/* Feito para Safari do iOS 9 (iPad mini 1, 1024x768): sem CSS grid, sem variáveis CSS. */
+* { box-sizing: border-box; -webkit-box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%;
+  -webkit-user-select: none; -webkit-tap-highlight-color: rgba(0,0,0,0); }
+.row { display: -webkit-flex; display: flex; }
+.col { display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; }
+.grow { -webkit-flex: 1; flex: 1; min-width: 0; min-height: 0; }
+.center { -webkit-align-items: center; align-items: center; }
+.between { -webkit-justify-content: space-between; justify-content: space-between; }
+.muted { color: #8b949e; }
+.card { background: #161b22; border-radius: 12px; padding: 12px 16px; }
+.label { font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #8b949e; }
+.sep { border-top: 1px solid #30363d; }
+
+#app { height: 100%; padding: 12px; }
+#left { width: 300px; margin-right: 12px; }
+#left > .card { margin-bottom: 12px; }
+#left > .card:last-child { margin-bottom: 0; }
+
+/* Relógio */
+#clock { height: 160px; -webkit-justify-content: center; justify-content: center; }
+#time { font-size: 90px; font-weight: 200; line-height: 1; letter-spacing: -2px; }
+#secs { font-size: 28px; color: #8b949e; font-weight: 300; margin-left: 4px; }
+#date { font-size: 21px; color: #c9d1d9; margin-top: 6px; font-weight: 300; }
+#status { font-size: 12px; color: #484f58; margin-top: 4px; }
+
+/* Sol e lua */
+.sunRow { margin: 8px 0 10px; font-size: 20px; }
+.sunItem .muted { font-size: 14px; display: block; margin-bottom: 2px; }
+#moonBox { padding-top: 10px; -webkit-justify-content: center; justify-content: center; text-align: center; }
+#moonCanvas { margin-bottom: 10px; }
+#moonName { font-size: 22px; }
+.moonLine { font-size: 16px; margin-top: 3px; }
+#moonNext { white-space: pre-line; }
+.moonLine small { font-size: 13px; color: #8b949e; }
+
+
+/* Osório (detalhado) */
+#main { margin-bottom: 12px; }
+.nowBlock { width: 230px; }
+.cityName { font-size: 25px; font-weight: 500; }
+.cityName span { font-weight: 300; color: #8b949e; font-size: 18px; }
+.nowMain { margin: 4px 0 2px; }
+.nowIcon { font-size: 50px; line-height: 1; margin-right: 10px; }
+.nowTemp { font-size: 70px; font-weight: 200; line-height: 1; }
+.nowRange { font-size: 17px; }
+.details { -webkit-flex-wrap: wrap; flex-wrap: wrap; -webkit-align-content: space-between; align-content: space-between; }
+.detail { width: 33.33%; padding: 3px 0 3px 12px; border-left: 1px solid #30363d; margin-bottom: 6px; }
+.detail .muted { font-size: 14px; }
+.detail .v { font-size: 21px; margin-top: 1px; white-space: nowrap; }
+.section { margin-top: 8px; padding-top: 6px; }
+.hours { margin-top: 6px; }
+.hour { -webkit-flex: 1; flex: 1; text-align: center; }
+.hour .t { font-size: 15px; color: #8b949e; }
+.hour .i { font-size: 26px; line-height: 1.3; }
+.hour .temp { font-size: 21px; }
+.hour .r { font-size: 14px; color: #58a6ff; height: 17px; }
+.days { margin-top: 6px; }
+.day { -webkit-flex: 1; flex: 1; text-align: center; border-radius: 10px; padding: 6px 2px; }
+.day.today { background: #1f2630; }
+.dayName { font-size: 18px; font-weight: 500; }
+.dayDate { font-size: 14px; }
+.dayIcon { font-size: 32px; line-height: 1.25; }
+.dayMax { font-size: 25px; }
+.dayMin { font-size: 19px; color: #8b949e; }
+.dayExtra { font-size: 14px; color: #8b949e; margin-top: 3px; line-height: 1.4; }
+.dayExtra .rain { color: #58a6ff; }
+
+/* Porto Alegre (compacto) */
+#bottom { height: 186px; }
+#poa { padding: 10px 10px; }
+#poa .cityName { font-size: 20px; margin: 0 0 4px 6px; }
+#poa .day { padding: 4px 0; }
+#poa .dayName { font-size: 16px; }
+#poa .dayIcon { font-size: 24px; }
+#poa .dayMax { font-size: 20px; }
+#poa .dayMin { font-size: 16px; }
+#poa .dayExtra { margin-top: 1px; }
+
+/* Câmera */
+#cam { height: 169px; padding: 0; overflow: hidden; position: relative; display: none; background: #000; }
+#cam img { width: 100%; height: 100%; object-fit: cover; display: block; }
+#cam .camLabel { position: absolute; left: 8px; bottom: 6px; font-size: 12px; color: #fff; text-shadow: 0 1px 2px #000; }
+#cam.full { position: fixed; left: 0; top: 0; right: 0; bottom: 0; width: auto; height: auto;
+  margin: 0; z-index: 10; border-radius: 0; }
+#cam.full img { object-fit: contain; }
+
+#fsTip { position: fixed; left: 50%; top: 12px; width: 560px; margin-left: -280px; z-index: 20;
+  background: #1f6feb; color: #fff; border-radius: 12px; padding: 12px 44px 12px 16px;
+  font-size: 15px; line-height: 1.4; display: none; }
+#fsTip b { font-weight: 600; }
+#fsClose { position: absolute; right: 0; top: 0; width: 44px; height: 100%; text-align: center;
+  font-size: 22px; line-height: 44px; }
+
+.uv0 { color: #3fb950; } .uv1 { color: #d29922; } .uv2 { color: #f0883e; }
+.uv3 { color: #f85149; } .uv4 { color: #bc8cff; }
+</style>
+</head>
+<body>
+<div id="app" class="row">
+  <div id="left" class="col">
+    <div id="clock" class="card col">
+      <div><span id="time">--:--</span><span id="secs">--</span></div>
+      <div id="date"></div>
+      <div id="status"></div>
+    </div>
+    <div id="sky" class="card col grow">
+      <div class="label">Sol e Lua</div>
+      <div class="sunRow row between">
+        <div class="sunItem"><span class="muted">Nascer</span>🌅 <span id="sunrise">--:--</span></div>
+        <div class="sunItem"><span class="muted">Pôr</span>🌇 <span id="sunset">--:--</span></div>
+        <div class="sunItem"><span class="muted">Duração</span><span id="daylen">--</span></div>
+      </div>
+      <div id="moonBox" class="col center sep grow">
+        <canvas id="moonCanvas" width="110" height="110" style="width:110px;height:110px"></canvas>
+        <div>
+          <div id="moonName"></div>
+          <div id="moonIllum" class="moonLine muted"></div>
+          <div id="moonTimes" class="moonLine"></div>
+          <div id="moonNext" class="moonLine muted"></div>
+        </div>
+      </div>
+    </div>
+    <div id="cam" class="card">
+      <img id="camImg" alt="">
+      <div class="camLabel">Câmera</div>
+    </div>
+  </div>
+
+  <div id="right" class="col grow">
+    <div id="main" class="card col grow"></div>
+    <div id="bottom" class="row">
+      <div id="poa" class="card col grow"></div>
+    </div>
+  </div>
+</div>
+
+<div id="fsTip">
+  <b>Tela cheia:</b> toque em Compartilhar (□↑) na barra do Safari → <b>Adicionar à Tela de Início</b>,
+  e abra o painel pelo ícone criado.
+  <div id="fsClose">×</div>
+</div>
+
+<script>
+// ES5 puro: o Safari do iOS 9 não tem fetch, arrow functions, template strings confiáveis etc.
+(function () {
+  'use strict';
+
+  var DIAS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  var DIAS_LONGOS = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira',
+    'Quinta-feira', 'Sexta-feira', 'Sábado'];
+  var MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho',
+    'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  var PONTOS = ['N', 'NE', 'L', 'SE', 'S', 'SO', 'O', 'NO'];
+
+  function $(id) { return document.getElementById(id); }
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined && text !== null) e.textContent = text;
+    return e;
+  }
+  function add(parent, child) { parent.appendChild(child); return child; }
+
+  function getJSON(url, ok, fail) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url + (url.indexOf('?') < 0 ? '?' : '&') + '_=' + Date.now(), true);
+    xhr.timeout = 30000;
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState !== 4) return;
+      if (xhr.status === 200) {
+        var data;
+        try { data = JSON.parse(xhr.responseText); } catch (e) { return fail(e); }
+        ok(data);
+      } else {
+        fail(new Error('HTTP ' + xhr.status));
+      }
+    };
+    xhr.send();
+  }
+
+  // Não usar new Date("2026-10-29T06:12"): o Safari 9 interpreta como UTC.
+  function hhmm(iso) { return iso.substr(11, 5); }
+  function ymd(iso) {
+    var p = iso.substr(0, 10).split('-');
+    return new Date(+p[0], +p[1] - 1, +p[2]);
+  }
+  function todayISO() {
+    var d = new Date();
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  }
+  function ddmm(d) { return pad(d.getDate()) + '/' + pad(d.getMonth() + 1); }
+
+  // ---------- Relógio ----------
+  function tickClock() {
+    var d = new Date();
+    $('time').textContent = pad(d.getHours()) + ':' + pad(d.getMinutes());
+    $('secs').textContent = pad(d.getSeconds());
+    $('date').textContent = DIAS_LONGOS[d.getDay()] + ', ' + d.getDate() + ' de ' + MESES[d.getMonth()];
+  }
+
+  // ---------- Lua (fase) ----------
+  var SYNODIC = 29.530588853;
+  var NEW_MOON_REF = Date.UTC(2000, 0, 6, 18, 14); // lua nova conhecida
+
+  function moonAge(date) {
+    var age = ((date.getTime() - NEW_MOON_REF) / 86400000) % SYNODIC;
+    return age < 0 ? age + SYNODIC : age;
+  }
+
+  function moonPhaseName(age) {
+    var f = age / SYNODIC;
+    if (f < 0.0339 || f >= 0.9661) return 'Lua Nova';
+    if (f < 0.2161) return 'Lua Crescente';
+    if (f < 0.2839) return 'Quarto Crescente';
+    if (f < 0.4661) return 'Crescente Gibosa';
+    if (f < 0.5339) return 'Lua Cheia';
+    if (f < 0.7161) return 'Minguante Gibosa';
+    if (f < 0.7839) return 'Quarto Minguante';
+    return 'Lua Minguante';
+  }
+
+  // Desenha a lua como vista do hemisfério sul (crescente iluminada à esquerda).
+  function drawMoon(age) {
+    var ctx = $('moonCanvas').getContext('2d');
+    var size = 110, r = 52, cx = size / 2, cy = size / 2;
+    var k = Math.cos(2 * Math.PI * age / SYNODIC);
+    var litLeft = age < SYNODIC / 2;
+    var LIT = '#f2e9c9', DARK = '#2a2f37';
+
+    ctx.clearRect(0, 0, size, size);
+    ctx.fillStyle = DARK;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillStyle = LIT;
+    ctx.beginPath();
+    if (litLeft) ctx.arc(cx, cy, r, Math.PI / 2, 3 * Math.PI / 2);
+    else ctx.arc(cx, cy, r, -Math.PI / 2, Math.PI / 2);
+    ctx.closePath(); ctx.fill();
+    // Terminador: elipse escura (crescente) ou clara (gibosa).
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(Math.max(Math.abs(k), 0.001), 1);
+    ctx.fillStyle = k > 0 ? DARK : LIT;
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, 2 * Math.PI); ctx.fill();
+    ctx.restore();
+  }
+
+  function updateMoon() {
+    var now = new Date();
+    var age = moonAge(now);
+    drawMoon(age);
+    $('moonName').textContent = moonPhaseName(age);
+    $('moonIllum').textContent = Math.round((1 - Math.cos(2 * Math.PI * age / SYNODIC)) / 2 * 100) + '% iluminada';
+    var toFull = (SYNODIC / 2 - age + SYNODIC) % SYNODIC;
+    var toNew = SYNODIC - age;
+    var full = new Date(now.getTime() + toFull * 86400000);
+    var nova = new Date(now.getTime() + toNew * 86400000);
+    var parts = [['Cheia', full], ['Nova', nova]];
+    if (toNew < toFull) parts.reverse();
+    $('moonNext').textContent = parts[0][0] + ' ' + ddmm(parts[0][1]) + '  ·  ' + parts[1][0] + ' ' + ddmm(parts[1][1]);
+  }
+
+  function moonTimeNode(label, iso) {
+    var span = el('span', '', label + ' ' + (iso ? hhmm(iso) : '--:--'));
+    if (iso && iso.substr(0, 10) !== todayISO()) span.appendChild(el('small', '', ' amanhã'));
+    return span;
+  }
+
+  function renderSky(sun, moon) {
+    $('sunrise').textContent = hhmm(sun.sunrise);
+    $('sunset').textContent = hhmm(sun.sunset);
+    var mins = Math.round(sun.daylight_duration / 60);
+    $('daylen').textContent = Math.floor(mins / 60) + 'h' + pad(mins % 60);
+    var box = $('moonTimes');
+    box.innerHTML = '';
+    box.appendChild(moonTimeNode('Nasce', moon.rise));
+    box.appendChild(document.createTextNode('  ·  '));
+    box.appendChild(moonTimeNode('Põe', moon.set));
+  }
+
+  // ---------- Tempo ----------
+  // Emojis antigos (iOS 5+) para garantir que aparecem no iOS 9.
+  function weatherInfo(code, isDay) {
+    if (code === 0) return [isDay === 0 ? '🌙' : '☀️', 'Céu limpo'];
+    if (code === 1) return [isDay === 0 ? '🌙' : '⛅', 'Poucas nuvens'];
+    if (code === 2) return [isDay === 0 ? '☁️' : '⛅', 'Parcialmente nublado'];
+    if (code === 3) return ['☁️', 'Nublado'];
+    if (code === 45 || code === 48) return ['🌁', 'Nevoeiro'];
+    if (code >= 51 && code <= 57) return ['💧', 'Garoa'];
+    if (code >= 61 && code <= 67) return ['☔', code >= 65 ? 'Chuva forte' : 'Chuva'];
+    if (code >= 71 && code <= 77) return ['❄️', 'Neve'];
+    if (code >= 80 && code <= 82) return ['☔', 'Pancadas de chuva'];
+    if (code >= 85 && code <= 86) return ['❄️', 'Neve'];
+    if (code >= 95) return ['⚡', 'Trovoada'];
+    return ['❔', ''];
+  }
+
+  function windDir(deg) { return PONTOS[Math.round(deg / 45) % 8]; }
+
+  function uvLevel(uv) {
+    if (uv < 3) return [0, 'baixo'];
+    if (uv < 6) return [1, 'moderado'];
+    if (uv < 8) return [2, 'alto'];
+    if (uv < 11) return [3, 'muito alto'];
+    return [4, 'extremo'];
+  }
+
+  function detail(parent, label, value, cls) {
+    var d = add(parent, el('div', 'detail'));
+    add(d, el('div', 'muted', label));
+    add(d, el('div', 'v' + (cls ? ' ' + cls : ''), value));
+  }
+
+  function renderDays(parent, daily, extended) {
+    var row = add(parent, el('div', 'days row grow'));
+    for (var i = 0; i < daily.time.length; i++) {
+      var d = ymd(daily.time[i]);
+      var day = add(row, el('div', 'day col between' + (i === 0 ? ' today' : '')));
+      var head = add(day, el('div'));
+      add(head, el('div', 'dayName', i === 0 ? 'Hoje' : DIAS[d.getDay()]));
+      if (extended) add(head, el('div', 'dayDate muted', ddmm(d)));
+      add(day, el('div', 'dayIcon', weatherInfo(daily.weather_code[i], 1)[0]));
+      var temps = add(day, el('div'));
+      add(temps, el('div', 'dayMax', Math.round(daily.temperature_2m_max[i]) + '°'));
+      add(temps, el('div', 'dayMin', Math.round(daily.temperature_2m_min[i]) + '°'));
+      var extra = add(day, el('div', 'dayExtra'));
+      var rain = daily.precipitation_probability_max[i];
+      var rainTxt = rain == null ? '' : rain + '%';
+      if (extended && daily.precipitation_sum[i] >= 0.5) rainTxt += ' ' + Math.round(daily.precipitation_sum[i]) + 'mm';
+      add(extra, el('div', 'rain', rainTxt));
+    }
+  }
+
+  function renderDetailed(box, city) {
+    var cur = city.current, daily = city.daily, hourly = city.hourly;
+    box.innerHTML = '';
+    var w = weatherInfo(cur.weather_code, cur.is_day);
+
+    var top = add(box, el('div', 'row'));
+    var nowB = add(top, el('div', 'nowBlock col'));
+    var name = add(nowB, el('div', 'cityName', city.name + ' '));
+    add(name, el('span', '', w[1]));
+    var main = add(nowB, el('div', 'nowMain row center'));
+    add(main, el('div', 'nowIcon', w[0]));
+    add(main, el('div', 'nowTemp', Math.round(cur.temperature_2m) + '°'));
+    add(nowB, el('div', 'nowRange muted', 'Máx ' + Math.round(daily.temperature_2m_max[0]) +
+      '°  ·  Mín ' + Math.round(daily.temperature_2m_min[0]) + '°'));
+
+    var det = add(top, el('div', 'details row grow'));
+    var uv = uvLevel(cur.uv_index);
+    detail(det, 'Sensação', Math.round(cur.apparent_temperature) + '°');
+    detail(det, 'Umidade', cur.relative_humidity_2m + '%');
+    detail(det, 'Ponto de orvalho', Math.round(cur.dew_point_2m) + '°');
+    detail(det, 'Vento', Math.round(cur.wind_speed_10m) + ' km/h ' + windDir(cur.wind_direction_10m));
+    detail(det, 'Rajadas', Math.round(cur.wind_gusts_10m) + ' km/h');
+    detail(det, 'Pressão', Math.round(cur.pressure_msl) + ' hPa');
+    detail(det, 'Índice UV', Math.round(cur.uv_index) + ' ' + uv[1], 'uv' + uv[0]);
+    detail(det, 'Nuvens', cur.cloud_cover + '%');
+    detail(det, 'Visibilidade', (cur.visibility >= 10000 ? '10+' : (cur.visibility / 1000).toFixed(1)) + ' km');
+
+    var hs = add(box, el('div', 'section sep'));
+    add(hs, el('div', 'label', 'Próximas 12 horas'));
+    var hours = add(hs, el('div', 'hours row'));
+    for (var i = 0; i < hourly.time.length; i++) {
+      var h = add(hours, el('div', 'hour'));
+      add(h, el('div', 't', hourly.time[i].substr(11, 2) + 'h'));
+      add(h, el('div', 'i', weatherInfo(hourly.weather_code[i], hourly.is_day[i])[0]));
+      add(h, el('div', 'temp', Math.round(hourly.temperature_2m[i]) + '°'));
+      var p = hourly.precipitation_probability[i];
+      add(h, el('div', 'r', p >= 10 ? p + '%' : ''));
+    }
+
+    var ds = add(box, el('div', 'section sep col grow'));
+    add(ds, el('div', 'label', 'Próximos 7 dias'));
+    renderDays(ds, daily, true);
+  }
+
+  function renderCompact(box, city) {
+    box.innerHTML = '';
+    add(box, el('div', 'cityName', city.name));
+    renderDays(box, city.daily, false);
+  }
+
+  function updateWeather() {
+    getJSON('/api/weather', function (data) {
+      try {
+        var compactDone = false;
+        for (var i = 0; i < data.cities.length; i++) {
+          var c = data.cities[i];
+          if (c.detailed) renderDetailed($('main'), c);
+          else if (!compactDone) { renderCompact($('poa'), c); compactDone = true; }
+        }
+        renderSky(data.sun, data.moon);
+      } catch (e) {
+        // Ex.: servidor antigo ainda rodando com formato de dados diferente.
+        $('status').textContent = 'Erro ao montar o tempo: ' + e.message + ' (reinicie o server.py)';
+        setTimeout(updateWeather, 60 * 1000);
+        return;
+      }
+      var d = new Date();
+      $('status').textContent = 'Atualizado às ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+      setTimeout(updateWeather, 10 * 60 * 1000);
+    }, function (err) {
+      $('status').textContent = 'Erro ao buscar o tempo (' + err.message + ')';
+      setTimeout(updateWeather, 60 * 1000);
+    });
+  }
+
+  // ---------- Câmera ----------
+  function startCamera(refreshSeconds) {
+    var cam = $('cam'), img = $('camImg');
+    cam.style.display = 'block';
+    function next(delay) {
+      setTimeout(function () { img.src = '/api/camera.jpg?_=' + Date.now(); }, delay);
+    }
+    img.onload = function () { next(refreshSeconds * 1000); };
+    img.onerror = function () { next(15000); };
+    cam.onclick = function () {
+      cam.className = cam.className.indexOf('full') >= 0 ? 'card' : 'card full';
+    };
+    next(0);
+  }
+
+  // ---------- Início ----------
+  tickClock();
+  setInterval(tickClock, 1000);
+  updateMoon();
+  setInterval(updateMoon, 60 * 60 * 1000);
+  updateWeather();
+  getJSON('/api/config', function (cfg) {
+    if (cfg.camera) startCamera(cfg.camera_refresh_seconds || 5);
+  }, function () {});
+
+  // O Safari do iOS 9 não tem API de tela cheia; só aberto pela Tela de Início
+  // (navigator.standalone) a barra some. Mostra a dica quando aberto pelo Safari.
+  var tipKey = 'fsTipHidden';
+  var tipHidden = false;
+  try { tipHidden = localStorage.getItem(tipKey) === '1'; } catch (e) {}
+  if (navigator.standalone === false && !tipHidden) {
+    $('fsTip').style.display = 'block';
+    $('fsClose').onclick = function () {
+      $('fsTip').style.display = 'none';
+      try { localStorage.setItem(tipKey, '1'); } catch (e) {}
+    };
+  }
+
+  // Recarrega a página a cada 6h para evitar acúmulo de memória no Safari antigo.
+  setTimeout(function () { location.reload(); }, 6 * 60 * 60 * 1000);
+})();
+</script>
+</body>
+</html>
