@@ -55,7 +55,9 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 .cityName { font-size: 25px; font-weight: 500; }
 .cityName span { font-weight: 300; color: #8b949e; font-size: 18px; }
 .nowMain { margin: 4px 0 2px; }
-.nowIcon { font-size: 90px; line-height: 1; margin-right: 10px; }
+.wi { width: 1em; height: 1em; display: inline-block; vertical-align: middle; }
+.nowIcon { font-size: 80px; line-height: 1; margin-right: 10px; }
+.nowIcon .wi { display: block; }
 .nowTemp { font-size: 70px; font-weight: 200; line-height: 1; }
 .nowDesc { font-size: 18px; margin-bottom: 2px; }
 .nowRange { font-size: 17px; }
@@ -296,20 +298,64 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
   }
 
   // ---------- Tempo ----------
-  // Emojis antigos (iOS 5+) para garantir que aparecem no iOS 9.
   function weatherInfo(code, isDay) {
-    if (code === 0) return [isDay === 0 ? '🌙' : '☀️', 'Céu limpo'];
-    if (code === 1) return [isDay === 0 ? '🌙' : '⛅', 'Poucas nuvens'];
-    if (code === 2) return [isDay === 0 ? '☁️' : '⛅', 'Parcialmente nublado'];
-    if (code === 3) return ['☁️', 'Nublado'];
-    if (code === 45 || code === 48) return ['🌁', 'Nevoeiro'];
-    if (code >= 51 && code <= 57) return ['💧', 'Garoa'];
-    if (code >= 61 && code <= 67) return ['☔', code >= 65 ? 'Chuva forte' : 'Chuva'];
-    if (code >= 71 && code <= 77) return ['❄️', 'Neve'];
-    if (code >= 80 && code <= 82) return ['☔', 'Pancadas de chuva'];
-    if (code >= 85 && code <= 86) return ['❄️', 'Neve'];
-    if (code >= 95) return ['⚡', 'Trovoada'];
-    return ['❔', ''];
+    if (code === 0) return [isDay === 0 ? 'moon' : 'sun', 'Céu limpo'];
+    if (code === 1) return [isDay === 0 ? 'moon' : 'partly', 'Poucas nuvens'];
+    if (code === 2) return [isDay === 0 ? 'partlyNight' : 'partly', 'Parcialmente nublado'];
+    if (code === 3) return ['cloud', 'Nublado'];
+    if (code === 45 || code === 48) return ['fog', 'Nevoeiro'];
+    if (code >= 51 && code <= 57) return ['drizzle', 'Garoa'];
+    if (code >= 61 && code <= 67) return ['rain', code >= 65 ? 'Chuva forte' : 'Chuva'];
+    if (code >= 71 && code <= 77) return ['snow', 'Neve'];
+    if (code >= 80 && code <= 82) return ['rain', 'Pancadas de chuva'];
+    if (code >= 85 && code <= 86) return ['snow', 'Neve'];
+    if (code >= 95) return ['storm', 'Trovoada'];
+    return ['cloud', ''];
+  }
+
+  // Ícones em SVG: no iOS 9 os emojis ficam presos em ~21px, qualquer que seja o font-size.
+  // O tamanho vem do font-size da classe (1em).
+  function sunSvg(cx, cy, r) {
+    var s = '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="#fdb813"/>';
+    for (var a = 0; a < 8; a++) {
+      var c = Math.cos(a * Math.PI / 4), n = Math.sin(a * Math.PI / 4);
+      s += '<line x1="' + (cx + c * (r + 5)) + '" y1="' + (cy + n * (r + 5)) + '" x2="' + (cx + c * (r + 11)) +
+        '" y2="' + (cy + n * (r + 11)) + '" stroke="#fdb813" stroke-width="4" stroke-linecap="round"/>';
+    }
+    return s;
+  }
+  var MOON_SVG = '<path d="M29.84 12.12A20 20 0 1 0 50.93 38.47A17 17 0 0 1 29.84 12.12Z" fill="#f5d76e"/>';
+  function cloudSvg(transform, color) {
+    return '<path transform="' + transform + '" fill="' + color + '" d="M18 48h30a10 10 0 0 0 0-20a14 14 0 0 0-26-4a10 10 0 0 0-4 24z"/>';
+  }
+  function linesSvg(color, coords) {
+    var s = '';
+    for (var i = 0; i < coords.length; i++) {
+      var c = coords[i];
+      s += '<line x1="' + c[0] + '" y1="' + c[1] + '" x2="' + c[2] + '" y2="' + c[3] +
+        '" stroke="' + color + '" stroke-width="4" stroke-linecap="round"/>';
+    }
+    return s;
+  }
+  var CLOUD_UP = 'translate(0,-6)';
+  var ICONS = {
+    sun: sunSvg(32, 32, 13),
+    moon: MOON_SVG,
+    partly: sunSvg(24, 24, 9) + cloudSvg('translate(14,12) scale(0.8)', '#d0d7de'),
+    partlyNight: '<g transform="translate(0,-1) scale(0.75)">' + MOON_SVG + '</g>' +
+      cloudSvg('translate(14,12) scale(0.8)', '#d0d7de'),
+    cloud: cloudSvg('translate(0,4)', '#d0d7de'),
+    fog: cloudSvg(CLOUD_UP, '#aeb7c2') + linesSvg('#8b949e', [[12, 50, 52, 50], [16, 58, 48, 58]]),
+    drizzle: cloudSvg(CLOUD_UP, '#aeb7c2') + linesSvg('#58a6ff', [[22, 49, 20, 54], [34, 49, 32, 54], [46, 49, 44, 54]]),
+    rain: cloudSvg(CLOUD_UP, '#aeb7c2') + linesSvg('#58a6ff', [[22, 48, 17, 60], [34, 48, 29, 60], [46, 48, 41, 60]]),
+    snow: cloudSvg(CLOUD_UP, '#d0d7de') + '<g fill="#e6edf3"><circle cx="20" cy="51" r="3.5"/>' +
+      '<circle cx="32" cy="58" r="3.5"/><circle cx="44" cy="51" r="3.5"/></g>',
+    storm: cloudSvg(CLOUD_UP, '#aeb7c2') + '<polygon points="34,38 23,54 31,54 27,63 41,46 33,46 38,38" fill="#fdb813"/>'
+  };
+  function weatherIcon(cls, name) {
+    var e = el('div', cls);
+    e.innerHTML = '<svg class="wi" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">' + ICONS[name] + '</svg>';
+    return e;
   }
 
   function windDir(deg) { return PONTOS[Math.round(deg / 45) % 8]; }
@@ -336,7 +382,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
       var head = add(day, el('div'));
       add(head, el('div', 'dayName', i === 0 ? 'Hoje' : DIAS[d.getDay()]));
       if (extended) add(head, el('div', 'dayDate muted', ddmm(d)));
-      add(day, el('div', 'dayIcon', weatherInfo(daily.weather_code[i], 1)[0]));
+      add(day, weatherIcon('dayIcon', weatherInfo(daily.weather_code[i], 1)[0]));
       var temps = add(day, el('div'));
       add(temps, el('div', 'dayMax', Math.round(daily.temperature_2m_max[i]) + '°'));
       add(temps, el('div', 'dayMin', Math.round(daily.temperature_2m_min[i]) + '°'));
@@ -357,7 +403,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
     var nowB = add(top, el('div', 'nowBlock col'));
     add(nowB, el('div', 'cityName', city.name));
     var main = add(nowB, el('div', 'nowMain row center'));
-    add(main, el('div', 'nowIcon', w[0]));
+    add(main, weatherIcon('nowIcon', w[0]));
     add(main, el('div', 'nowTemp', Math.round(cur.temperature_2m) + '°'));
     add(nowB, el('div', 'nowDesc', w[1]));
     add(nowB, el('div', 'nowRange muted', 'Máx ' + Math.round(daily.temperature_2m_max[0]) +
@@ -381,7 +427,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
     for (var i = 0; i < hourly.time.length; i++) {
       var h = add(hours, el('div', 'hour'));
       add(h, el('div', 't', hourly.time[i].substr(11, 2) + 'h'));
-      add(h, el('div', 'i', weatherInfo(hourly.weather_code[i], hourly.is_day[i])[0]));
+      add(h, weatherIcon('i', weatherInfo(hourly.weather_code[i], hourly.is_day[i])[0]));
       add(h, el('div', 'temp', Math.round(hourly.temperature_2m[i]) + '°'));
       var p = hourly.precipitation_probability[i];
       add(h, el('div', 'r', p >= 10 ? p + '%' : ''));
