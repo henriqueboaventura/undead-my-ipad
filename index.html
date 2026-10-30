@@ -29,6 +29,8 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 
 #app { height: 100%; padding: 12px; position: relative; z-index: 1; }
 #skyBg { position: fixed; left: 0; top: 0; z-index: 0; }
+#simLabel { position: fixed; left: 50%; bottom: 14px; width: 260px; margin-left: -130px; z-index: 30; display: none;
+  background: rgba(0,0,0,0.75); color: #fff; border-radius: 16px; padding: 6px 0; text-align: center; font-size: 15px; }
 #left { width: 340px; margin-right: 12px; }
 #left > .card { margin-bottom: 12px; }
 #left > .card:last-child { margin-bottom: 0; }
@@ -127,6 +129,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 </head>
 <body>
 <canvas id="skyBg"></canvas>
+<div id="simLabel"></div>
 <div id="app" class="row">
   <div id="left" class="col">
     <div id="clock" class="card col">
@@ -641,6 +644,44 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
   // com ele; nuvens, cinza e chuva conforme o tempo atual de Osório.
   var skyData = null;
 
+  // Simulação (só para testar o fundo):
+  //   ?demo=1                            o dia inteiro em 2 min; o tempo muda a cada volta
+  //   ?hora=18:30&tempo=rain&nuvens=90   um momento fixo (tempo: sun partly cloud fog drizzle rain storm)
+  var SIM = {};
+  (function () {
+    var q = location.search.substr(1).split('&');
+    for (var i = 0; i < q.length; i++) {
+      var kv = q[i].split('=');
+      if (kv[0]) SIM[kv[0]] = decodeURIComponent(kv[1] || '');
+    }
+  })();
+  var DEMO_LAP = 120 * 1000, demoStart = Date.now();
+  var DEMO_WEATHER = [['sun', 0, 'Sol'], ['partly', 45, 'Algumas nuvens'], ['rain', 95, 'Chuva'],
+    ['cloud', 90, 'Nublado'], ['storm', 100, 'Trovoada'], ['fog', 80, 'Nevoeiro'], ['drizzle', 85, 'Garoa']];
+
+  function skySim() {
+    var d = now(), midnight = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+    var out = { t: d.getTime(), clouds: null, kind: null, label: null };
+    if (SIM.demo) {
+      var elapsed = Date.now() - demoStart, w = DEMO_WEATHER[Math.floor(elapsed / DEMO_LAP) % DEMO_WEATHER.length];
+      out.t = midnight + (elapsed % DEMO_LAP) / DEMO_LAP * 86400000;
+      out.kind = w[0]; out.clouds = w[1]; out.label = w[2];
+    } else if (SIM.hora) {
+      var hm = SIM.hora.split(':');
+      out.t = midnight + (+hm[0] * 60 + (+hm[1] || 0)) * 60000;
+      out.label = 'tempo atual';
+      for (var i = 0; i < DEMO_WEATHER.length; i++) if (DEMO_WEATHER[i][0] === SIM.tempo) out.label = DEMO_WEATHER[i][2];
+    }
+    if (SIM.tempo) out.kind = SIM.tempo;
+    if (SIM.nuvens) out.clouds = +SIM.nuvens;
+    if (out.label) {
+      var st = new Date(out.t), lab = $('simLabel');
+      lab.style.display = 'block';
+      lab.textContent = 'Simulação  ' + pad(st.getUTCHours()) + ':' + pad(st.getUTCMinutes()) + '  ·  ' + out.label;
+    }
+    return out;
+  }
+
   function mixColor(a, b, t) {
     t = Math.max(0, Math.min(1, t));
     var pa = [parseInt(a.substr(1, 2), 16), parseInt(a.substr(3, 2), 16), parseInt(a.substr(5, 2), 16)];
@@ -678,7 +719,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     if (!skyData) { ctx.fillStyle = '#0d1117'; ctx.fillRect(0, 0, W, H); return; }
 
-    var t = now().getTime(), rise = localTime(skyData.sunrise), set = localTime(skyData.sunset);
+    var sim = skySim(), t = sim.t, rise = localTime(skyData.sunrise), set = localTime(skyData.sunset);
     var p = (t - rise) / (set - rise);                  // 0 = nascer, 1 = pôr
     var alt = p > 0 && p < 1 ? Math.sin(Math.PI * p) : 0;
     var TWI = 45 * 60000;                              // crepúsculo: 45 min
@@ -686,7 +727,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
     // luz: 0 = noite, 0.3 = nascer/pôr, 1 = dia pleno
     var light = dist ? 0.3 * Math.max(0, 1 - dist / TWI) : 0.3 + 0.7 * Math.min(1, alt * 2.5);
 
-    var c = (skyData.clouds || 0) / 100, kind = skyData.kind;
+    var c = (sim.clouds !== null ? sim.clouds : skyData.clouds || 0) / 100, kind = sim.kind || skyData.kind;
     var wet = kind === 'rain' || kind === 'drizzle' || kind === 'storm';
     var gray = Math.min(0.95, c * 0.7 + (wet ? 0.3 : 0) + (kind === 'fog' ? 0.4 : 0));
 
@@ -761,7 +802,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
   }
 
   drawSkyBg();
-  setInterval(drawSkyBg, 60 * 1000);
+  setInterval(drawSkyBg, SIM.demo ? 250 : 60 * 1000);
   window.addEventListener('resize', drawSkyBg);
 
   // ---------- Câmera ----------
