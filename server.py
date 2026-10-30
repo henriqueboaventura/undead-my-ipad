@@ -373,31 +373,39 @@ class RtspGrabber:
     página estiver pedindo imagens; para sozinho após IDLE_STOP segundos.
     """
     IDLE_STOP = 60
+    STALE = 15  # quadro mais velho que isso: conexão travada
 
-    def __init__(self, url, fps):
-        self.url, self.fps = url, fps
+    def __init__(self, url):
+        self.url = url
         self.frame = None
+        self.frame_at = 0
+        self.proc = None
         self.last_request = 0
         self.lock = threading.Lock()
         self.thread = None
 
     def get(self):
         self.last_request = time.time()
-        with self.lock:
-            if not self.thread or not self.thread.is_alive():
-                self.thread = threading.Thread(target=self._run, daemon=True)
-                self.thread.start()
-        for _ in range(200):  # espera até 20s pelo primeiro quadro
-            if self.frame:
+        for _ in range(200):  # espera até 20s por um quadro recente
+            with self.lock:
+                if self.frame and time.time() - self.frame_at > self.STALE and self.proc:
+                    self.proc.kill()  # travou (ex.: troca de rede): o _run termina e recomeça
+                if not self.thread or not self.thread.is_alive():
+                    self.thread = threading.Thread(target=self._run, daemon=True)
+                    self.thread.start()
+            if self.frame and time.time() - self.frame_at <= self.STALE:
                 return self.frame
             time.sleep(0.1)
         raise RuntimeError("sem imagem da câmera (RTSP)")
 
     def _run(self):
-        # -threads 1: um quadro por segundo não precisa de decodificação paralela (~90 MB em vez de ~200 MB).
-        cmd = [FFMPEG, "-loglevel", "error", "-threads", "1", "-rtsp_transport", "tcp", "-i", self.url,
-               "-an", "-vf", "fps=%s" % self.fps, "-q:v", "6", "-f", "mjpeg", "pipe:1"]
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        # -threads 1: um quadro a cada 2s não precisa de decodificação paralela (~90 MB em vez de ~200 MB).
+        # -skip_frame nokey: decodifica só os quadros-chave (~1 a cada 2s na Tapo), ~57% menos CPU.
+        # -timeout: sem dados da câmera por 10s, o ffmpeg desiste em vez de esperar para sempre.
+        cmd = [FFMPEG, "-loglevel", "error", "-threads", "1", "-skip_frame", "nokey",
+               "-rtsp_transport", "tcp", "-timeout", "10000000", "-i", self.url,
+               "-an", "-fps_mode", "passthrough", "-q:v", "6", "-f", "mjpeg", "pipe:1"]
+        proc = self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         buf = b""
         try:
             while time.time() - self.last_request < self.IDLE_STOP:
@@ -412,6 +420,7 @@ class RtspGrabber:
                     if start < 0 or end < 0:
                         break
                     self.frame = buf[start:end + 2]
+                    self.frame_at = time.time()
                     buf = buf[end + 2:]
         finally:
             proc.kill()
@@ -484,7 +493,7 @@ def get_camera_snapshot():
                 local_port = start_tcp_relay(parts.hostname, parts.port or 554)
                 auth = parts.netloc.rsplit("@", 1)[0] + "@" if "@" in parts.netloc else ""
                 url = parts._replace(netloc="%s127.0.0.1:%d" % (auth, local_port)).geturl()
-                _rtsp = RtspGrabber(url, 1)  # 1 quadro/s: a primeira imagem chega rápido
+                _rtsp = RtspGrabber(url)
         return _rtsp.get()
     url = cam.get("snapshot_url")
     if not url:
