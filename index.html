@@ -36,20 +36,26 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 #left > .card:last-child { margin-bottom: 0; }
 
 /* Relógio */
-#clock { height: 160px; -webkit-justify-content: center; justify-content: center; }
-#time { font-size: 90px; font-weight: 200; line-height: 1; letter-spacing: -2px; }
+#clock { padding-top: 8px; padding-bottom: 10px; }
+/* line-height < 1: os números ocupam ~70% da altura da fonte; tira o vazio acima e abaixo. */
+#timeRow { line-height: 0.82; margin-top: 4px; }
+#time { font-size: 90px; font-weight: 200; letter-spacing: -2px; }
 #secs { font-size: 28px; color: #8b949e; font-weight: 300; margin-left: 4px; }
 #date { font-size: 21px; color: #c9d1d9; margin-top: 6px; font-weight: 300; }
 #status { font-size: 12px; color: #484f58; margin-top: 4px; }
 
 /* Sol e lua */
-.sunRow { margin: 8px 0 10px; font-size: 20px; }
+#sky { padding-top: 10px; padding-bottom: 10px; }
+.sunRow { margin: 6px 0 7px; font-size: 20px; }
 .sunItem .muted { font-size: 14px; display: block; margin-bottom: 2px; }
-.moonRow { margin-bottom: 0; padding-top: 10px; }
+.moonRow { margin-bottom: 0; padding-top: 7px; }
 #moonCanvas { width: 20px; height: 20px; vertical-align: -2px; margin-right: 4px; }
 
 /* Avisos */
-.alert { margin-top: 10px; padding-left: 10px; border-left: 3px solid #3fb950; }
+.alert { margin-top: 7px; padding-left: 10px; border-left: 3px solid #3fb950; }
+/* Sem espaço para todos os avisos: some a linha de detalhe (ver fitAlerts). */
+#alerts.compact .alert .a2 { display: none; }
+#alerts { padding-top: 10px; padding-bottom: 8px; }
 .alert .a1 { font-size: 18px; }
 .alert .a2 { font-size: 14px; color: #8b949e; margin-top: 1px; }
 .alert.ok .a1 { color: #c9d1d9; }
@@ -133,7 +139,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 <div id="app" class="row">
   <div id="left" class="col">
     <div id="clock" class="card col">
-      <div><span id="time">--:--</span><span id="secs">--</span></div>
+      <div id="timeRow"><span id="time">--:--</span><span id="secs">--</span></div>
       <div id="date"></div>
       <div id="status"></div>
     </div>
@@ -459,7 +465,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
   }
 
   var redrawChart = null;
-  window.addEventListener('resize', function () { if (redrawChart) redrawChart(); });
+  window.addEventListener('resize', function () { if (redrawChart) redrawChart(); fitAlerts(); });
 
   // Linha da temperatura com o valor em cada hora; barras azuis = chance de chuva (% na base).
   function drawHourChart(canvas, width, height, temps, probs) {
@@ -587,6 +593,13 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
       add(a, el('div', 'a1', items[i][1]));
       add(a, el('div', 'a2', items[i][2]));
     }
+    fitAlerts();
+  }
+
+  function fitAlerts() {
+    var box = $('alerts');
+    box.className = box.className.replace(' compact', '');
+    if (box.scrollHeight > box.clientHeight + 1) box.className += ' compact';
   }
 
   // 7 dias: alterna entre as cidades a cada WEEK_ROTATE segundos.
