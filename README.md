@@ -1,106 +1,257 @@
 # Painel para iPad mini (iOS 9)
 
-Página única com relógio, fase da lua, tempo atual + previsão de 7 dias
-(Osório e Porto Alegre), nascer/pôr do sol e, opcionalmente, a câmera de casa.
+Página única para um iPad mini de 1ª geração (iOS 9.3.5) usado como tela fixa:
+relógio, sol e lua (nascer/pôr e fase), tempo detalhado de Osório (agora,
+próximas 12 h e 7 dias), 7 dias de Porto Alegre e a câmera Tapo de casa.
 
-## Por que tem um servidor?
+## Como funciona
 
-O iPad mini 1 para no iOS 9.3.5. O Safari dele:
-- não confia nos certificados Let's Encrypt atuais (a API Open-Meteo usa um) → HTTPS falha;
-- não tem `fetch`, CSS grid, ES6 etc. (a página é toda em ES5 + flexbox);
-- não consegue abrir câmeras RTSP nem fazer login digest em muitas câmeras.
+```
+Open-Meteo ─┐
+            ├─► server.py (computador sempre ligado) ──HTTP──► Safari do iPad
+Câmera Tapo ┘     porta 8090, rede local
+```
 
-Então `server.py` (Python 3.7+, sem dependências) roda num computador de casa
-sempre ligado (Mac, Raspberry Pi, NAS...) e o iPad acessa por HTTP na rede local.
+O iPad não consegue buscar os dados sozinho: o Safari do iOS 9 não confia nos
+certificados HTTPS atuais e não abre RTSP. O `server.py` (Python, sem
+dependências) busca tudo e entrega por HTTP simples na rede de casa.
 
-## Rodar
+Arquivos:
 
-Na primeira vez, copie a configuração de exemplo e preencha (cidades, câmera, agenda).
-`config.json` fica fora do git porque guarda senhas:
+| Arquivo | O que é |
+|---|---|
+| `index.html` | A página (ES5 + flexbox, compatível com Safari 9) |
+| `server.py` | Servidor: previsão, lua, câmera (e agenda, desligada na página) |
+| `config.example.json` | Modelo de configuração, sem senhas |
+| `config.json` | Sua configuração com senhas — **fora do git** |
+| `scripts/install-macos.sh` | Instala como serviço no macOS (roda sem terminal) |
+| `scripts/uninstall-macos.sh` | Remove o serviço |
+| `apps-script.gs` | Opcional: ponte para Google Agenda |
+
+---
+
+## Instalar em outro computador (macOS)
+
+### 1. Pré-requisitos
+
+Abra o **Terminal** e rode:
+
+```sh
+# Python da Apple (/usr/bin/python3) e git
+xcode-select --install
+
+# ffmpeg (para a câmera). Se não tiver Homebrew, veja https://brew.sh
+brew install ffmpeg
+```
+
+Se o `xcode-select` disser que já está instalado, siga em frente.
+
+> **Use sempre `/usr/bin/python3`** (o da Apple), não o `python3` do Homebrew.
+> O macOS (Privacidade e Segurança → Rede Local) bloqueia o Python e o ffmpeg
+> do Homebrew de acessar aparelhos da rede e a câmera fica preta
+> ("No route to host"). O servidor faz uma ponte em `127.0.0.1` para o ffmpeg.
+
+### 2. Baixar o projeto
+
+O repositório é privado; entre na sua conta do GitHub antes:
+
+```sh
+brew install gh
+gh auth login
+gh repo clone henriqueboaventura/ipad-page ~/ipad-page
+cd ~/ipad-page
+```
+
+### 3. Configurar
 
 ```sh
 cp config.example.json config.json
+open -e config.json
 ```
+
+Preencha:
+
+- `camera.rtsp_url`: troque `USUARIO:SENHA` pela **Conta da câmera** do app Tapo
+  (ver [Câmera](#câmera-tapo-c500)). Se a senha tiver `@ : / # ?`, troque
+  esses caracteres por `%40 %3A %2F %23 %3F`.
+- `port`: porta do painel (padrão `8090`). Mude se já estiver em uso.
+- `cities`: cidades e coordenadas. A cidade com `"detailed": true` ganha a
+  previsão completa.
+
+### 4. Testar no terminal
 
 ```sh
 /usr/bin/python3 server.py
 ```
 
-Use o Python da Apple (`/usr/bin/python3`), não o do Homebrew: no macOS,
-Privacidade > Rede Local bloqueia o Python e o ffmpeg do Homebrew de acessar
-aparelhos da rede ("No route to host"). O servidor faz uma ponte em
-`127.0.0.1` para o ffmpeg chegar na câmera.
+No iPad, abra `http://IP-DO-COMPUTADOR:8090`. Para descobrir o IP do Mac:
+`ipconfig getifaddr en0` (Wi-Fi/cabo) ou Ajustes do Sistema → Rede.
 
-No iPad, abra `http://IP-DO-COMPUTADOR:8090` no Safari.
+Se aparecer tudo, pare com **Ctrl+C** e siga para o passo 5.
 
-Dicas no iPad:
-- Compartilhar → **Adicionar à Tela de Início** → abre em tela cheia, sem barra do Safari.
-- Ajustes → Geral → **Bloqueio Automático: Nunca**.
-- Deixe na tomada.
+### 5. Rodar sem terminal aberto (início automático)
 
-## Câmera
+```sh
+./scripts/install-macos.sh
+```
 
-Preencha `camera` no `config.json` com a URL de *snapshot* JPEG da câmera
-(quase toda câmera IP tem uma). Exemplos comuns:
+Isso cria um serviço do macOS (LaunchAgent) que:
 
-| Marca | URL |
+- inicia o painel sozinho quando você entra na sua conta do Mac;
+- roda em segundo plano, sem nenhuma janela de terminal;
+- reinicia o servidor se ele cair.
+
+Se o macOS perguntar se o **python3** pode acessar a rede local, clique em
+**Permitir**.
+
+Comandos úteis:
+
+| Para... | Rode |
 |---|---|
-| Intelbras / Dahua | `http://IP/cgi-bin/snapshot.cgi` |
-| Hikvision | `http://IP/ISAPI/Streaming/channels/101/picture` |
-| Reolink | `http://IP/cgi-bin/api.cgi?cmd=Snap&channel=0&user=U&password=S` |
-| Tapo (C500 etc.) / outras só RTSP | use `rtsp_url` (abaixo) |
+| Ver se está rodando | `launchctl print gui/$(id -u)/com.painel.ipad \| grep state` |
+| Ver o log | `tail -f ~/ipad-page/server.log` |
+| Reiniciar (após mudar `config.json`) | `launchctl kickstart -k gui/$(id -u)/com.painel.ipad` |
+| Parar e remover o início automático | `./scripts/uninstall-macos.sh` |
 
-### Tapo / RTSP
+> O serviço roda enquanto sua conta estiver logada (pode estar com a tela
+> bloqueada). Para o painel voltar sozinho após falta de luz, ative
+> Ajustes do Sistema → Usuários e Grupos → **Login automático**, e em
+> Bateria/Economia de Energia → **Iniciar automaticamente após falta de energia**.
+> Evite que o Mac entre em repouso: Ajustes → Bateria/Tela → **Impedir repouso
+> automático** quando a tela estiver desligada.
 
-Tapo não tem snapshot HTTP, só RTSP. Preencha `rtsp_url` no `config.json`:
+### 6. Atualizar para uma versão nova
 
-```
-rtsp://USUARIO:SENHA@192.168.1.210:554/stream2
-```
-
-- Usuário/senha: **não** é a conta TP-Link. No app Tapo: câmera → Configurações
-  → Configurações avançadas → **Conta da câmera** → criar.
-- `stream2` = baixa resolução (leve); `stream1` = resolução cheia.
-- Requer `ffmpeg` instalado no computador do servidor (`brew install ffmpeg`).
-  Só roda enquanto a página estiver aberta.
-
-Usuário/senha ficam no servidor (suporta Basic e Digest), nunca vão para o iPad.
-A imagem atualiza a cada `refresh_seconds`; toque nela para tela cheia.
-
-Câmeras de nuvem (Ring, Arlo, Wyze sem RTSP...) não expõem snapshot local —
-nesse caso, troque o painel por um calendário.
-
-## Rodar sempre (macOS)
-
-Exemplo com `launchd`: crie `~/Library/LaunchAgents/painel.ipad.plist` apontando
-para `python3 /caminho/server.py` com `KeepAlive` = true. Num Raspberry Pi, use um
-serviço `systemd`.
-
-## Agenda (Google Agenda)
-
-No computador, em calendar.google.com: Configurações → clique na agenda à
-esquerda → "Integrar agenda" → copie o **Endereço secreto no formato iCal**.
-Cole em `config.json`:
-
-```json
-"calendar": {
-  "ics_urls": ["https://calendar.google.com/calendar/ical/.../basic.ics"],
-  "days": 14,
-  "max_events": 12
-}
+```sh
+cd ~/ipad-page
+git pull
+launchctl kickstart -k gui/$(id -u)/com.painel.ipad
 ```
 
-Pode colocar várias agendas na lista. O link é secreto (dá leitura da agenda
-inteira) — fica só no servidor. O Google atualiza o .ics com alguns minutos (às
-vezes horas) de atraso; o painel busca a cada 10 min.
+O iPad pega a página nova sozinho em até 6 h, ou na hora se recarregar.
 
-### Sem "Secret address in iCal format"? Use o Apps Script
+---
 
-1. script.google.com (na conta certa) → **New project** → cole `apps-script.gs`.
-2. Troque `TOKEN` por uma senha longa. Salve.
-3. **Deploy → New deployment** → tipo **Web app** → *Execute as*: **Me**,
-   *Who has access*: **Anyone** → **Deploy** → autorize.
-4. Copie a **Web app URL** e coloque em `config.json`:
-   `"apps_script_urls": ["https://script.google.com/macros/s/.../exec?token=SUA_SENHA"]`
+## Instalar em Linux / Raspberry Pi (alternativa)
 
-Ao mudar o código depois: **Deploy → Manage deployments → editar → Version: New version**.
+Funciona igual e gasta menos energia que um Mac ligado. Não tem o problema de
+Rede Local do macOS.
+
+```sh
+sudo apt install -y git python3 ffmpeg tzdata gh
+gh auth login
+gh repo clone henriqueboaventura/ipad-page ~/ipad-page
+cd ~/ipad-page && cp config.example.json config.json && nano config.json
+python3 server.py   # teste; Ctrl+C para parar
+```
+
+Python 3.9 ou mais novo (`python3 --version`). Para rodar sem terminal, crie
+`/etc/systemd/system/painel.service` (troque `pi` pelo seu usuário):
+
+```ini
+[Unit]
+Description=Painel iPad
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=pi
+WorkingDirectory=/home/pi/ipad-page
+ExecStart=/usr/bin/python3 -u server.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```sh
+sudo systemctl daemon-reload
+sudo systemctl enable --now painel     # inicia agora e em todo boot
+journalctl -u painel -f                # log
+sudo systemctl restart painel          # reiniciar
+```
+
+---
+
+## Configurar o iPad
+
+1. Safari → `http://IP-DO-COMPUTADOR:8090`.
+2. Compartilhar (□↑) → **Adicionar à Tela de Início**. Abra sempre pelo ícone:
+   assim fica em tela cheia, sem a barra do Safari (o iOS 9 não permite um
+   botão de tela cheia).
+3. Ajustes → Geral → **Bloqueio Automático: Nunca**.
+4. Opcional: Ajustes → Geral → Acessibilidade → **Acesso Guiado** (prende o
+   iPad no painel; ative com 3 cliques no botão Início).
+5. Deixe na tomada, brilho em 30–40%. Bateria antiga sempre carregando pode
+   estufar: se a tela levantar, desligue.
+
+O computador e o iPad precisam estar na **mesma rede**. Se o IP do computador
+mudar, o ícone para de funcionar: reserve o IP dele no roteador (DHCP →
+Reserva de endereço) ou crie o ícone de novo.
+
+Atualizações automáticas: relógio a cada 1 s, câmera a cada 5 s
+(`refresh_seconds`), tempo/sol/lua a cada 10 min, página inteira a cada 6 h.
+
+---
+
+## Câmera (Tapo C500)
+
+A Tapo só oferece RTSP; o servidor usa o ffmpeg para tirar uma imagem por
+segundo (só enquanto o painel estiver aberto) e o iPad busca a mais recente.
+
+1. App Tapo → câmera → ⚙️ → Configurações avançadas → **Conta da câmera** →
+   crie usuário e senha (não é a conta TP-Link).
+2. Se existir: aba Eu → Tapo Lab → **Compatibilidade com terceiros** → ligado.
+3. `config.json`:
+   ```json
+   "rtsp_url": "rtsp://USUARIO:SENHA@192.168.0.69:554/stream2"
+   ```
+   `stream2` = leve (recomendado); `stream1` = resolução máxima.
+
+### Rede desta casa (dois roteadores)
+
+```
+Internet ─ Claro 192.168.0.1
+             ├─ computador do painel, iPad
+             └─ TP-Link Archer AX23 (lado Claro: 192.168.0.69)
+                   └─ Tapo C500 192.168.1.210
+```
+
+O computador fica na rede da Claro e não enxerga a rede da TP-Link. Por isso:
+
+- **TP-Link** (`http://tplinkwifi.net`, conectado no Wi-Fi dela):
+  - Advanced → NAT Forwarding → **Port Forwarding** → Add: IP `192.168.1.210`,
+    portas externa e interna `554`, TCP.
+  - Advanced → Network → DHCP Server → **Address Reservation**: câmera em
+    `192.168.1.210`.
+- **Claro** (`http://192.168.0.1`): reserva de IP DHCP `192.168.0.69` para o MAC
+  da WAN do AX23. Confira que **não há DMZ** apontando para a TP-Link.
+
+Em outra rede, basta o computador alcançar a câmera; use o IP dela direto
+na `rtsp_url`.
+
+---
+
+## Agenda (opcional, desligada na página)
+
+O servidor já entende agendas (`/api/calendar`), mas o quadro foi removido da
+página por falta de espaço. Para reativar, a página precisa voltar a ter o
+quadro; a configuração fica em `calendar` no `config.json`:
+
+- `ics_urls`: links iCal (Google: Configurações → agenda → Integrar agenda →
+  *Secret address in iCal format*).
+- `apps_script_urls`: quando o link iCal não existe, publique
+  `apps-script.gs` em script.google.com como **Web app** (*Execute as: Me*,
+  *Who has access: Anyone*) e use a URL `.../exec?token=SUA_SENHA`.
+
+---
+
+## Problemas comuns
+
+| Sintoma | Causa / solução |
+|---|---|
+| Página abre mas nada aparece | Servidor antigo rodando com código novo: reinicie. Veja a mensagem abaixo do relógio. |
+| Câmera preta | `server.log` com "No route to host": servidor rodando com o Python do Homebrew. Use `/usr/bin/python3` (o script de instalação já usa). |
+| Câmera preta, log "sem imagem da câmera" | Teste a porta: `nc -z 192.168.0.69 554`. Fechada → revise o Port Forwarding na TP-Link e a reserva de IP na Claro. |
+| `Address already in use` | Outro programa na porta. Mude `port` no `config.json` ou pare o servidor antigo: `lsof -ti tcp:8090 -sTCP:LISTEN \| xargs kill`. |
+| iPad não abre a página | Confira o IP do computador e se os dois estão na mesma rede (Claro). |
