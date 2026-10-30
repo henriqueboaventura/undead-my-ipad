@@ -114,6 +114,15 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 .dots span.on { background: #8b949e; }
 #week .day { padding: 4px 0; }
 #week .dayIcon { font-size: 30px; }
+/* Agenda (3ª página do card de baixo): lista em duas colunas. */
+.agenda { -webkit-column-count: 2; column-count: 2; -webkit-column-gap: 22px; column-gap: 22px; margin: 2px 6px 0; }
+.ev { font-size: 16px; line-height: 26px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  -webkit-column-break-inside: avoid; break-inside: avoid; }
+.ev .d { display: inline-block; width: 62px; color: #8b949e; }
+.ev .d.hoje { color: #e6edf3; font-weight: 500; }
+.ev .h { display: inline-block; width: 50px; }
+.ev .h.allday { color: #8b949e; font-size: 12px; }
+.ev .c { display: inline-block; width: 8px; height: 8px; border-radius: 4px; margin-right: 7px; vertical-align: 1px; }
 
 /* Câmera */
 #cam { height: 191px; padding: 0; overflow: hidden; position: relative; display: none; background: #000; }
@@ -123,6 +132,17 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 #cam.full { position: fixed; left: 0; top: 0; right: 0; bottom: 0; width: auto; height: auto;
   margin: 0; z-index: 10; border-radius: 0; }
 #cam.full img { object-fit: contain; }
+
+/* Modo noturno: só o relógio, apagado, sobre preto. Um toque mostra o painel por 1 min. */
+#night { position: fixed; left: 0; top: 0; right: 0; bottom: 0; z-index: 40; background: #000;
+  text-align: center; display: none; }
+#nightTime { font-size: 170px; font-weight: 200; letter-spacing: -4px; color: #3b4148; padding-top: 230px; line-height: 1; }
+#nightDate { font-size: 24px; font-weight: 300; color: #2b3036; margin-top: 14px; }
+
+/* Aviso de dados velhos (servidor ou internet fora do ar). */
+#stale { position: fixed; left: 50%; bottom: 14px; width: 640px; margin-left: -320px; z-index: 30; display: none;
+  background: rgba(218,54,51,0.92); color: #fff; border-radius: 12px; padding: 10px 16px;
+  text-align: center; font-size: 16px; }
 
 #fsTip { position: fixed; left: 50%; top: 12px; width: 560px; margin-left: -280px; z-index: 20;
   background: #1f6feb; color: #fff; border-radius: 12px; padding: 12px 44px 12px 16px;
@@ -176,6 +196,9 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
     </div>
   </div>
 </div>
+
+<div id="night"><div id="nightTime"></div><div id="nightDate"></div></div>
+<div id="stale"></div>
 
 <div id="fsTip">
   <b>Tela cheia:</b> toque em Compartilhar (□↑) na barra do Safari → <b>Adicionar à Tela de Início</b>,
@@ -254,6 +277,50 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
     $('time').textContent = pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes());
     $('secs').textContent = pad(d.getUTCSeconds());
     $('date').textContent = DIAS_LONGOS[d.getUTCDay()] + ', ' + d.getUTCDate() + ' de ' + MESES[d.getUTCMonth()];
+    tickNight();
+    tickStale();
+  }
+
+  // hours = "23:00-06:00": true se agora está dentro (o intervalo pode virar a meia-noite).
+  function inHours(hours) {
+    var p = hours.split('-'), d = now(), m = d.getUTCHours() * 60 + d.getUTCMinutes();
+    var mins = function (s) { var hm = s.split(':'); return +hm[0] * 60 + +hm[1]; };
+    var start = mins(p[0]), end = mins(p[1]);
+    return start <= end ? m >= start && m < end : m >= start || m < end;
+  }
+
+  // ---------- Modo noturno ----------
+  var NIGHT_WAKE = 60; // segundos de painel normal depois de um toque
+  var nightHours = null, nightWakeUntil = 0;
+
+  function tickNight() {
+    var on = !!nightHours && inHours(nightHours) && Date.now() > nightWakeUntil;
+    $('night').style.display = on ? 'block' : 'none';
+    if (on) {
+      $('nightTime').textContent = $('time').textContent;
+      $('nightDate').textContent = $('date').textContent;
+    }
+  }
+  $('night').onclick = function () {
+    nightWakeUntil = Date.now() + NIGHT_WAKE * 1000;
+    tickNight();
+  };
+
+  // ---------- Dados desatualizados ----------
+  // A página guarda a última previsão boa; se o servidor ou a internet caírem ela
+  // continua na tela. Depois de STALE_AFTER minutos sem atualizar, avisa.
+  var STALE_AFTER = 25;
+  var lastWeatherOk = Date.now(), lastWeatherLabel = null, lastWeatherErr = null;
+
+  function tickStale() {
+    var mins = Math.floor((Date.now() - lastWeatherOk) / 60000), box = $('stale');
+    if (mins < STALE_AFTER) { box.style.display = 'none'; return; }
+    var why = /HTTP 0/.test(lastWeatherErr || '') ? 'o servidor do painel não responde'
+      : 'o servidor está sem internet';
+    var age = mins < 120 ? mins + ' min' : Math.floor(mins / 60) + ' h';
+    box.textContent = (lastWeatherLabel ? 'Previsão de ' + lastWeatherLabel + ' (há ' + age + ')'
+      : 'Sem previsão há ' + age) + ': ' + why;
+    box.style.display = 'block';
   }
 
   // ---------- Lua (fase) ----------
@@ -607,27 +674,92 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
   }
 
 
-  // 7 dias: alterna entre as cidades a cada WEEK_ROTATE segundos.
+  // Card de baixo: 7 dias de cada cidade e a agenda, alternando a cada WEEK_ROTATE segundos.
   var WEEK_ROTATE = 10;
   var weekCities = [], weekIndex = 0;
+  var agenda = null, calNames = [];
+  var CAL_COLORS = ['#58a6ff', '#f0883e', '#3fb950', '#bc8cff', '#e3b341'];
+
+  function weekPages() { return weekCities.length + (agenda ? 1 : 0); }
+
+  function weekHead(box, title, sub) {
+    var head = add(box, el('div', 'weekHead row between center'));
+    var name = add(head, el('div', 'cityName', title));
+    add(name, el('span', '', '  ·  ' + sub));
+    var dots = add(head, el('div', 'dots'));
+    for (var i = 0; i < weekPages(); i++) add(dots, el('span', i === weekIndex ? 'on' : ''));
+  }
+
+  function agendaDay(iso) {
+    var today = todayISO(), t = now();
+    t.setUTCDate(t.getUTCDate() + 1);
+    var tomorrow = t.getUTCFullYear() + '-' + pad(t.getUTCMonth() + 1) + '-' + pad(t.getUTCDate());
+    if (iso === today) return 'Hoje';
+    if (iso === tomorrow) return 'Amanhã';
+    var d = ymd(iso);
+    return DIAS[d.getDay()] + ' ' + pad(d.getDate());
+  }
+
+  function renderAgenda(box) {
+    weekHead(box, 'Agenda', 'próximos 14 dias');
+    var list = add(box, el('div', 'agenda'));
+    if (!agenda.length) add(list, el('div', 'ev muted', 'Nada na agenda'));
+    for (var i = 0; i < agenda.length; i++) {
+      var ev = agenda[i], row = add(list, el('div', 'ev'));
+      // Dia só no primeiro evento do dia e no topo de cada coluna (as colunas dividem a lista ao meio).
+      var day = agendaDay(ev.date);
+      var first = i === 0 || i === Math.ceil(agenda.length / 2) || agenda[i - 1].date !== ev.date;
+      add(row, el('span', 'd' + (day === 'Hoje' ? ' hoje' : ''), first ? day : ''));
+      add(row, el('span', 'h' + (ev.time ? '' : ' allday'), ev.time || 'dia todo'));
+      var dot = add(row, el('span', 'c'));
+      dot.style.background = CAL_COLORS[Math.max(0, calNames.indexOf(ev.cal)) % CAL_COLORS.length];
+      row.appendChild(document.createTextNode(ev.title));
+    }
+  }
 
   function renderWeek() {
-    var box = $('week'), city = weekCities[weekIndex];
-    if (!city) return;
+    var box = $('week');
+    if (!weekPages()) return;
+    weekIndex = weekIndex % weekPages();
     box.innerHTML = '';
-    var head = add(box, el('div', 'weekHead row between center'));
-    var name = add(head, el('div', 'cityName', city.name));
-    add(name, el('span', '', '  ·  próximos 7 dias'));
-    var dots = add(head, el('div', 'dots'));
-    for (var i = 0; i < weekCities.length; i++) add(dots, el('span', i === weekIndex ? 'on' : ''));
+    if (weekIndex >= weekCities.length) return renderAgenda(box);
+    var city = weekCities[weekIndex];
+    weekHead(box, city.name, 'próximos 7 dias');
     renderDays(box, city.daily, true);
   }
 
-  setInterval(function () {
-    if (weekCities.length < 2) return;
-    weekIndex = (weekIndex + 1) % weekCities.length;
-    renderWeek();
-  }, WEEK_ROTATE * 1000);
+  var weekTimer = null;
+  function showWeekPage(step, delay) {
+    if (weekPages() >= 2) {
+      weekIndex = (weekIndex + step + weekPages()) % weekPages();
+      renderWeek();
+    }
+    clearTimeout(weekTimer);
+    weekTimer = setTimeout(function () { showWeekPage(1, WEEK_ROTATE); }, delay * 1000);
+  }
+  weekTimer = setTimeout(function () { showWeekPage(1, WEEK_ROTATE); }, WEEK_ROTATE * 1000);
+
+  // Deslizar no card: esquerda = próxima página, direita = anterior. Depois de um
+  // deslize a troca automática espera WEEK_SWIPE_PAUSE segundos.
+  var WEEK_SWIPE_PAUSE = 30, touchX = null, touchY = 0;
+  $('week').addEventListener('touchstart', function (e) {
+    touchX = e.touches[0].clientX; touchY = e.touches[0].clientY;
+  });
+  $('week').addEventListener('touchmove', function (e) { e.preventDefault(); });
+  $('week').addEventListener('touchend', function (e) {
+    if (touchX === null) return;
+    var dx = e.changedTouches[0].clientX - touchX, dy = e.changedTouches[0].clientY - touchY;
+    touchX = null;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) showWeekPage(dx < 0 ? 1 : -1, WEEK_SWIPE_PAUSE);
+  });
+
+  function updateAgenda() {
+    getJSON('/api/calendar', function (list) {
+      agenda = list;
+      if (weekIndex >= weekCities.length) renderWeek();
+      setTimeout(updateAgenda, 30 * 60 * 1000);
+    }, function () { setTimeout(updateAgenda, 5 * 60 * 1000); });
+  }
 
   function updateWeather() {
     getJSON('/api/weather', function (data) {
@@ -637,7 +769,6 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
           if (c.detailed) { renderDetailed($('main'), c); renderAlerts(c); }
         }
         weekCities = data.cities;
-        weekIndex = weekIndex % weekCities.length;
         renderWeek();
         renderSky(data.sun, data.moon);
         updateSkyBg(data);
@@ -648,9 +779,13 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
         return;
       }
       var d = now();
-      $('status').textContent = 'Atualizado às ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes());
+      lastWeatherOk = Date.now();
+      lastWeatherLabel = pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes());
+      $('status').textContent = 'Atualizado às ' + lastWeatherLabel;
+      tickStale();
       setTimeout(updateWeather, 10 * 60 * 1000);
     }, function (err) {
+      lastWeatherErr = err.message;
       $('status').textContent = 'Erro ao buscar o tempo (' + err.message + ')';
       setTimeout(updateWeather, 60 * 1000);
     });
@@ -826,11 +961,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
   // ---------- Câmera ----------
   // hours = "07:30-18:00" (camera.active_hours); fora dele a página não pede imagens.
   function cameraActive(hours) {
-    if (!hours) return true;
-    var p = hours.split('-'), d = now(), m = d.getUTCHours() * 60 + d.getUTCMinutes();
-    var mins = function (s) { var hm = s.split(':'); return +hm[0] * 60 + +hm[1]; };
-    var start = mins(p[0]), end = mins(p[1]);
-    return start <= end ? m >= start && m < end : m >= start || m < end;
+    return !hours || inHours(hours);
   }
 
   function startCamera(refreshSeconds, hours) {
@@ -868,6 +999,9 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
   getJSON('/api/config', function (cfg) {
     if (cfg.camera) startCamera(cfg.camera_refresh_seconds || 5, cfg.camera_hours);
     reminders = cfg.reminders || [];
+    nightHours = cfg.night_hours || null;
+    tickNight();
+    if (cfg.calendar) { calNames = cfg.calendars || []; updateAgenda(); }
     if (alertCity) renderAlerts(alertCity);
   }, function () {});
 

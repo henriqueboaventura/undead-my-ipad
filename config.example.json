@@ -1,6 +1,7 @@
 {
   "port": 8090,
   "timezone": "America/Sao_Paulo",
+  "night_hours": "23:00-06:00",
   "cities": [
     {
       "name": "Osório",

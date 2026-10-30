@@ -22,7 +22,7 @@ Arquivos:
 | Arquivo | O que é |
 |---|---|
 | `index.html` | A página (ES5 + flexbox, compatível com Safari 9) |
-| `server.py` | Servidor: previsão, lua, câmera (e agenda, desligada na página) |
+| `server.py` | Servidor: previsão, lua, câmera e agenda |
 | `config.example.json` | Modelo de configuração, sem senhas |
 | `config.json` | Sua configuração com senhas — **fora do git** |
 | `scripts/install-macos.sh` | Instala como serviço no macOS (roda sem terminal) |
@@ -82,6 +82,9 @@ Preencha:
 - `reminders`: lembretes fixos que aparecem no card de Avisos nos dias
   escolhidos (`seg ter qua qui sex sab dom`). Ex.:
   `{"days": ["seg", "qua", "sex"], "text": "Dia de lixo", "detail": "Colocar o lixo para fora"}`.
+- `night_hours`: modo noturno (padrão `23:00-06:00`). Nesse horário a tela
+  fica preta, só com o relógio apagado; um toque mostra o painel por 1 min.
+  Deixe `""` para desligar.
 - `cities`: cidades e coordenadas. A cidade com `"detailed": true` ganha a
   previsão completa.
 
@@ -250,17 +253,36 @@ na `rtsp_url`.
 
 ---
 
-## Agenda (opcional, desligada na página)
+## Agenda (opcional)
 
-O servidor já entende agendas (`/api/calendar`), mas o quadro foi removido da
-página por falta de espaço. Para reativar, a página precisa voltar a ter o
-quadro; a configuração fica em `calendar` no `config.json`:
+Com agendas configuradas, o card de baixo ganha uma terceira página (depois dos
+7 dias de cada cidade) com os próximos eventos em duas colunas, uma cor por
+agenda. A configuração fica em `calendar` no `config.json`:
 
-- `ics_urls`: links iCal (Google: Configurações → agenda → Integrar agenda →
-  *Secret address in iCal format*).
-- `apps_script_urls`: quando o link iCal não existe, publique
-  `apps-script.gs` em script.google.com como **Web app** (*Execute as: Me*,
-  *Who has access: Anyone*) e use a URL `.../exec?token=SUA_SENHA`.
+```json
+"calendar": {
+  "ics_urls": [
+    {"name": "Pessoal", "url": "https://calendar.google.com/calendar/ical/.../private-.../basic.ics"}
+  ],
+  "apps_script_urls": [],
+  "days": 14,
+  "max_events": 12
+}
+```
+
+- `ics_urls`: links iCal **privados** (Google: Configurações → a agenda →
+  Integrar agenda → *Endereço secreto no formato iCal*). O link *público* só
+  funciona se a agenda for pública; senão dá 404. Também aceita só a URL, sem
+  nome.
+- `apps_script_urls`: quando o endereço secreto não existe (comum em contas de
+  empresa), publique `apps-script.gs` em script.google.com com essa conta como
+  **Web app** (*Execute as: Me*, *Who has access: Anyone*) e use
+  `{"name": "Trabalho", "url": ".../exec?token=SUA_SENHA"}`.
+- `max_events`: 12 cabem no card (6 por coluna).
+
+O servidor baixa as agendas a cada 30 min. Se uma falhar, usa a última versão
+boa dela e as outras continuam aparecendo. Eventos iguais em duas agendas
+aparecem uma vez.
 
 ---
 

@@ -170,8 +170,9 @@ def get_weather():
 # comuns (DAILY/WEEKLY/MONTHLY/YEARLY com INTERVAL, COUNT, UNTIL, BYDAY,
 # BYMONTHDAY, BYMONTH), EXDATE e ocorrências editadas (RECURRENCE-ID).
 
-CAL_TTL = 10 * 60
+CAL_TTL = 30 * 60  # agendas grandes (o .ics do Google pode ter MBs)
 _cal_cache = {"at": 0, "body": None}
+_cal_last_good = {}  # url -> último conteúdo baixado com sucesso
 _cal_lock = threading.Lock()
 WEEKDAYS = {"MO": 0, "TU": 1, "WE": 2, "TH": 3, "FR": 4, "SA": 5, "SU": 6}
 
@@ -329,7 +330,7 @@ def build_agenda(texts, days):
             continue
         uid = ev.get("UID", [({}, "")])[0][1]
         skip = overridden.get(uid, set()) if "RECURRENCE-ID" not in ev else set()
-        title = ics_text(ev.get("SUMMARY", [({}, "(sem título)")])[0][1])
+        title = ics_text(ev.get("SUMMARY", [({}, "(sem título)")])[0][1]).strip()
         for occ, dur in ics_occurrences(ev, today, win_end):
             if occ in skip:
                 continue
@@ -347,24 +348,53 @@ def build_agenda(texts, days):
             for d, t, title in items]
 
 
+def calendar_sources(cal, key):
+    """Entradas de ics_urls/apps_script_urls: "url" ou {"name": ..., "url": ...}."""
+    for item in cal.get(key, []):
+        if isinstance(item, str):
+            item = {"url": item}
+        yield item.get("name") or "", item["url"]
+
+
+def fetch_cached(url, timeout):
+    """Baixa a URL; se falhar, usa a última versão boa (uma agenda fora do ar não derruba as outras)."""
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as r:
+            _cal_last_good[url] = r.read().decode("utf-8", "replace")
+    except Exception as e:
+        print("agenda indisponível (%s): %s" % (url.split("/")[2], e), flush=True)
+    return _cal_last_good.get(url)
+
+
 def get_calendar():
     cal = CONFIG.get("calendar") or {}
     with _cal_lock:
         if _cal_cache["body"] and time.time() - _cal_cache["at"] < CAL_TTL:
             return _cal_cache["body"]
-        texts = []
-        for url in cal.get("ics_urls", []):
+        agenda = []
+        for name, url in calendar_sources(cal, "ics_urls"):
             if url.startswith("webcal://"):
                 url = "https://" + url[len("webcal://"):]
-            with urllib.request.urlopen(url, timeout=20) as r:
-                texts.append(r.read().decode("utf-8", "replace"))
-        agenda = build_agenda(texts, cal.get("days", 14))
+            text = fetch_cached(url, 30)
+            if text:
+                for ev in build_agenda([text], cal.get("days", 14)):
+                    ev["cal"] = name
+                    agenda.append(ev)
         # Apps Script (apps-script.gs) já devolve os eventos prontos em JSON.
-        for url in cal.get("apps_script_urls", []):
-            with urllib.request.urlopen(url, timeout=30) as r:
-                agenda += json.loads(r.read().decode("utf-8"))
-        agenda.sort(key=lambda i: (i["date"], i["time"] or "", i["title"]))
-        body = json.dumps(agenda[:cal.get("max_events", 12)]).encode("utf-8")
+        for name, url in calendar_sources(cal, "apps_script_urls"):
+            text = fetch_cached(url, 30)
+            if text:
+                for ev in json.loads(text):
+                    ev["cal"] = name
+                    agenda.append(ev)
+        # Mesmo evento em duas agendas (ou duplicado na mesma) aparece uma vez.
+        seen, unique = set(), []
+        for ev in sorted(agenda, key=lambda i: (i["date"], i["time"] or "", i["title"])):
+            key = (ev["date"], ev["time"], ev["title"])
+            if key not in seen:
+                seen.add(key)
+                unique.append(ev)
+        body = json.dumps(unique[:cal.get("max_events", 12)]).encode("utf-8")
         _cal_cache.update(at=time.time(), body=body)
         return body
 
@@ -554,8 +584,13 @@ class Handler(SimpleHTTPRequestHandler):
                     "camera_refresh_seconds": cam.get("refresh_seconds", 5),
                     "camera_hours": cam.get("active_hours") or None,
                     "reminders": CONFIG.get("reminders") or [],
+                    # Modo noturno (só o relógio, apagado); "" desliga.
+                    "night_hours": CONFIG.get("night_hours", "23:00-06:00") or None,
                     "calendar": bool((CONFIG.get("calendar") or {}).get("ics_urls")
                                      or (CONFIG.get("calendar") or {}).get("apps_script_urls")),
+                    # Nomes das agendas, na ordem do config: a página dá uma cor para cada.
+                    "calendars": [n for k in ("ics_urls", "apps_script_urls")
+                                  for n, _ in calendar_sources(CONFIG.get("calendar") or {}, k)],
                 }).encode("utf-8")
                 return self.send_bytes(body, "application/json; charset=utf-8")
             if path == "/api/time":
