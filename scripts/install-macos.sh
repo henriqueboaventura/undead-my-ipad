@@ -38,6 +38,9 @@ cat > "$PLIST" <<EOF
   <key>Label</key><string>$LABEL</string>
   <key>ProgramArguments</key>
   <array>
+    <!-- caffeinate -i: o Mac não dorme por inatividade enquanto o painel roda (a tela pode apagar). -->
+    <string>/usr/bin/caffeinate</string>
+    <string>-i</string>
     <string>$PYTHON</string>
     <string>-u</string>
     <string>$DIR/server.py</string>

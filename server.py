@@ -44,9 +44,13 @@ def weather_url():
         "longitude": ",".join(str(c["lon"]) for c in cities),
         "current": "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,"
                    "is_day,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,"
-                   "uv_index,cloud_cover,visibility,dew_point_2m",
-        "hourly": "temperature_2m,weather_code,precipitation_probability,is_day",
-        "forecast_hours": 13,  # hora atual + próximas 12
+                   "uv_index,cloud_cover,visibility,dew_point_2m,precipitation",
+        "hourly": "temperature_2m,weather_code,precipitation_probability,precipitation,"
+                  "wind_gusts_10m,wind_direction_10m,is_day",
+        "forecast_hours": 15,  # hora atual + próximas 14
+        # Chuva de 15 em 15 min nas próximas ~2h, para o aviso "chuva em X min".
+        "minutely_15": "precipitation",
+        "forecast_minutely_15": 10,
         "daily": "weather_code,temperature_2m_max,temperature_2m_min,"
                  "precipitation_probability_max,precipitation_sum,uv_index_max,"
                  "wind_speed_10m_max,wind_direction_10m_dominant,sunrise,sunset,"
@@ -149,6 +153,7 @@ def get_weather():
             if c["detailed"]:
                 c["current"] = d["current"]
                 c["hourly"] = {k: v[1:] for k, v in d["hourly"].items()}  # pula a hora atual
+                c["minutely_15"] = d.get("minutely_15")
             cities.append(c)
         first = CONFIG["cities"][0]
         body = json.dumps({
@@ -483,6 +488,17 @@ _rtsp = None
 _rtsp_lock = threading.Lock()
 
 
+def camera_active(cam):
+    """Se está dentro de camera.active_hours ("07:30-18:00"); sem horário, sempre."""
+    spec = cam.get("active_hours")
+    if not spec:
+        return True
+    start, end = [int(h) * 60 + int(m) for h, m in (p.strip().split(":") for p in spec.split("-"))]
+    now = datetime.now(LOCAL_TZ)
+    minute = now.hour * 60 + now.minute
+    return start <= minute < end if start <= end else (minute >= start or minute < end)
+
+
 def get_camera_snapshot():
     global _rtsp
     cam = CONFIG.get("camera") or {}
@@ -536,13 +552,23 @@ class Handler(SimpleHTTPRequestHandler):
                 body = json.dumps({
                     "camera": bool(cam.get("snapshot_url") or cam.get("rtsp_url")),
                     "camera_refresh_seconds": cam.get("refresh_seconds", 5),
+                    "camera_hours": cam.get("active_hours") or None,
                     "calendar": bool((CONFIG.get("calendar") or {}).get("ics_urls")
                                      or (CONFIG.get("calendar") or {}).get("apps_script_urls")),
                 }).encode("utf-8")
                 return self.send_bytes(body, "application/json; charset=utf-8")
+            if path == "/api/time":
+                # A página usa esta hora: o fuso do iOS 9 ainda tem horário de verão no Brasil.
+                now = datetime.now(LOCAL_TZ)
+                body = json.dumps({"now": int(now.timestamp() * 1000),
+                                   "offset": int(now.utcoffset().total_seconds() // 60)}).encode("utf-8")
+                return self.send_bytes(body, "application/json; charset=utf-8")
             if path == "/api/calendar":
                 return self.send_bytes(get_calendar(), "application/json; charset=utf-8")
             if path == "/api/camera.jpg":
+                # Fora do horário a página nem pede; isto só evita ligar o ffmpeg à toa.
+                if not camera_active(CONFIG.get("camera") or {}):
+                    return self.send_bytes(b"camera fora do horario", "text/plain", 503)
                 img = get_camera_snapshot()
                 if img is None:
                     return self.send_bytes(b"camera not configured", "text/plain", 404)

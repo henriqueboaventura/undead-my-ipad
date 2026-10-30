@@ -2,7 +2,8 @@
 
 Página única para um iPad mini de 1ª geração (iOS 9.3.5) usado como tela fixa:
 relógio, sol e lua (nascer/pôr e fase), tempo detalhado de Osório (agora,
-próximas 12 h e 7 dias), 7 dias de Porto Alegre e a câmera Tapo de casa.
+gráfico das próximas 14 h, avisos de chuva e rajadas), 7 dias alternando
+entre Osório e Porto Alegre e a câmera Tapo de casa.
 
 ## Como funciona
 
@@ -74,6 +75,9 @@ Preencha:
 - `camera.rtsp_url`: troque `USUARIO:SENHA` pela **Conta da câmera** do app Tapo
   (ver [Câmera](#câmera-tapo-c500)). Se a senha tiver `@ : / # ?`, troque
   esses caracteres por `%40 %3A %2F %23 %3F`.
+- `camera.active_hours`: horário em que a câmera atualiza (padrão
+  `07:30-18:00`). Fora dele a página mostra "Câmera desligada" e o ffmpeg
+  não roda. Deixe `""` para a câmera ficar sempre ligada.
 - `port`: porta do painel (padrão `8090`). Mude se já estiver em uso.
 - `cities`: cidades e coordenadas. A cidade com `"detailed": true` ganha a
   previsão completa.
@@ -117,8 +121,13 @@ Comandos úteis:
 > bloqueada). Para o painel voltar sozinho após falta de luz, ative
 > Ajustes do Sistema → Usuários e Grupos → **Login automático**, e em
 > Bateria/Economia de Energia → **Iniciar automaticamente após falta de energia**.
-> Evite que o Mac entre em repouso: Ajustes → Bateria/Tela → **Impedir repouso
-> automático** quando a tela estiver desligada.
+> O serviço roda dentro do `caffeinate -i`, então o Mac não entra em repouso
+> por inatividade enquanto o painel estiver rodando (a tela pode apagar
+> normalmente). Num notebook, fechar a tampa ainda põe o Mac em repouso.
+>
+> O Mac precisa ficar **na mesma rede Wi-Fi do iPad**. Se ele tiver outras
+> redes salvas, desligue a **Conexão automática** delas (Ajustes do Sistema →
+> Wi-Fi → Detalhes da rede), senão ele pode trocar de rede ao acordar.
 
 ### 6. Atualizar para uma versão nova
 
@@ -190,7 +199,13 @@ mudar, o ícone para de funcionar: reserve o IP dele no roteador (DHCP →
 Reserva de endereço) ou crie o ícone de novo.
 
 Atualizações automáticas: relógio a cada 1 s, câmera a cada 5 s
-(`refresh_seconds`), tempo/sol/lua a cada 10 min, página inteira a cada 6 h.
+(`refresh_seconds`, só dentro de `active_hours`), tempo/sol/lua/avisos a cada
+10 min, página inteira a cada 6 h.
+
+Avisos (card abaixo do sol e lua): chuva começando ou parando (previsão de
+15 em 15 min), chuva provável nas próximas 14 h (≥ 50%) e rajadas a partir de
+50 km/h (vermelho a partir de 70 km/h). Os limites ficam no início da seção
+Avisos do `index.html`.
 
 ---
 

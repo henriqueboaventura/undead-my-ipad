@@ -41,12 +41,19 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 /* Sol e lua */
 .sunRow { margin: 8px 0 10px; font-size: 20px; }
 .sunItem .muted { font-size: 14px; display: block; margin-bottom: 2px; }
-#moonBox { padding-top: 10px; -webkit-justify-content: center; justify-content: center; text-align: center; }
-#moonCanvas { margin-bottom: 10px; }
-#moonName { font-size: 22px; }
-.moonLine { font-size: 16px; margin-top: 3px; }
-#moonNext { white-space: pre-line; }
-.moonLine small { font-size: 13px; color: #8b949e; }
+.moonRow { margin-bottom: 0; padding-top: 10px; }
+#moonCanvas { width: 20px; height: 20px; vertical-align: -2px; margin-right: 4px; }
+
+/* Avisos */
+.alert { margin-top: 10px; padding-left: 10px; border-left: 3px solid #3fb950; }
+.alert .a1 { font-size: 18px; }
+.alert .a2 { font-size: 14px; color: #8b949e; margin-top: 1px; }
+.alert.ok .a1 { color: #c9d1d9; }
+.alert.rain { border-color: #58a6ff; }
+.alert.wind { border-color: #d29922; }
+.alert.wind .a1 { color: #e3b341; }
+.alert.windStrong { border-color: #f85149; }
+.alert.windStrong .a1 { color: #ff7b72; }
 
 
 /* Osório (detalhado) */
@@ -69,9 +76,8 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 .hours { margin-top: 6px; }
 .hour { -webkit-flex: 1; flex: 1; text-align: center; }
 .hour .t { font-size: 15px; color: #8b949e; }
-.hour .i { font-size: 26px; line-height: 1.3; }
-.hour .temp { font-size: 21px; }
-.hour .r { font-size: 14px; color: #58a6ff; height: 17px; }
+.hour .i { font-size: 26px; line-height: 1.05; margin-top: 2px; }
+.chart { display: block; }
 .days { margin-top: 6px; }
 .day { -webkit-flex: 1; flex: 1; text-align: center; border-radius: 10px; padding: 6px 2px; }
 .day.today { background: #1f2630; }
@@ -83,21 +89,24 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 .dayExtra { font-size: 14px; color: #8b949e; margin-top: 3px; line-height: 1.4; }
 .dayExtra .rain { color: #58a6ff; }
 
-/* Porto Alegre (compacto) */
-#bottom { height: 186px; }
-#poa { padding: 10px 10px; }
-#poa .cityName { font-size: 20px; margin: 0 0 4px 6px; }
-#poa .day { padding: 4px 0; }
-#poa .dayName { font-size: 16px; }
-#poa .dayIcon { font-size: 24px; }
-#poa .dayMax { font-size: 20px; }
-#poa .dayMin { font-size: 16px; }
-#poa .dayExtra { margin-top: 1px; }
+.chartArea { position: relative; margin-top: 4px; }
+.chartArea .chart { position: absolute; left: 0; top: 0; }
+
+/* 7 dias (alterna entre as cidades) */
+#bottom { height: 222px; }
+#week { padding: 10px 10px; }
+.weekHead { margin: 0 6px 4px; }
+.weekHead .cityName { font-size: 20px; }
+.dots span { display: inline-block; width: 8px; height: 8px; border-radius: 4px; background: #30363d; margin-left: 6px; }
+.dots span.on { background: #8b949e; }
+#week .day { padding: 4px 0; }
+#week .dayIcon { font-size: 30px; }
 
 /* Câmera */
 #cam { height: 191px; padding: 0; overflow: hidden; position: relative; display: none; background: #000; }
 #cam img { width: 100%; height: 100%; object-fit: cover; display: block; }
 #cam .camLabel { position: absolute; left: 8px; bottom: 6px; font-size: 12px; color: #fff; text-shadow: 0 1px 2px #000; }
+#camOff { display: none; height: 100%; padding-top: 80px; text-align: center; font-size: 16px; color: #8b949e; background: #161b22; }
 #cam.full { position: fixed; left: 0; top: 0; right: 0; bottom: 0; width: auto; height: auto;
   margin: 0; z-index: 10; border-radius: 0; }
 #cam.full img { object-fit: contain; }
@@ -121,25 +130,26 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
       <div id="date"></div>
       <div id="status"></div>
     </div>
-    <div id="sky" class="card col grow">
+    <div id="sky" class="card col">
       <div class="label">Sol e Lua</div>
       <div class="sunRow row between">
         <div class="sunItem"><span class="muted">Nascer</span>🌅 <span id="sunrise">--:--</span></div>
         <div class="sunItem"><span class="muted">Pôr</span>🌇 <span id="sunset">--:--</span></div>
         <div class="sunItem"><span class="muted">Duração</span><span id="daylen">--</span></div>
       </div>
-      <div id="moonBox" class="col center sep grow">
-        <canvas id="moonCanvas" width="110" height="110" style="width:110px;height:110px"></canvas>
-        <div>
-          <div id="moonName"></div>
-          <div id="moonIllum" class="moonLine muted"></div>
-          <div id="moonTimes" class="moonLine"></div>
-          <div id="moonNext" class="moonLine muted"></div>
-        </div>
+      <div class="sunRow moonRow row between sep">
+        <div class="sunItem"><span id="moonName" class="muted"></span><canvas id="moonCanvas" width="40" height="40"></canvas><span id="moonIllum"></span></div>
+        <div class="sunItem"><span id="moonRiseLabel" class="muted">Nasce</span><span id="moonRise">--:--</span></div>
+        <div class="sunItem"><span id="moonSetLabel" class="muted">Põe</span><span id="moonSet">--:--</span></div>
       </div>
+    </div>
+    <div id="alerts" class="card col grow">
+      <div class="label">Avisos</div>
+      <div id="alertList"></div>
     </div>
     <div id="cam" class="card">
       <img id="camImg" alt="">
+      <div id="camOff"></div>
       <div class="camLabel">Câmera</div>
     </div>
   </div>
@@ -147,7 +157,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
   <div id="right" class="col grow">
     <div id="main" class="card col grow"></div>
     <div id="bottom" class="row">
-      <div id="poa" class="card col grow"></div>
+      <div id="week" class="card col grow"></div>
     </div>
   </div>
 </div>
@@ -204,18 +214,31 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
     var p = iso.substr(0, 10).split('-');
     return new Date(+p[0], +p[1] - 1, +p[2]);
   }
+  // Hora do painel = hora do servidor no fuso do config.json. O fuso do iOS 9 ainda tem
+  // horário de verão no Brasil (abolido em 2019) e o relógio do iPad pode estar atrasado.
+  // now() devolve um Date cujos campos UTC são a hora local do painel: ler com getUTC*.
+  var clockShift = -new Date().getTimezoneOffset() * 60000; // até o servidor responder
+  function now() { return new Date(Date.now() + clockShift); }
+  function syncClock() {
+    var sent = Date.now();
+    getJSON('/api/time', function (t) {
+      clockShift = t.now + (Date.now() - sent) / 2 - Date.now() + t.offset * 60000;
+      tickClock();
+    }, function () {});
+  }
+
   function todayISO() {
-    var d = new Date();
-    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    var d = now();
+    return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate());
   }
   function ddmm(d) { return pad(d.getDate()) + '/' + pad(d.getMonth() + 1); }
 
   // ---------- Relógio ----------
   function tickClock() {
-    var d = new Date();
-    $('time').textContent = pad(d.getHours()) + ':' + pad(d.getMinutes());
-    $('secs').textContent = pad(d.getSeconds());
-    $('date').textContent = DIAS_LONGOS[d.getDay()] + ', ' + d.getDate() + ' de ' + MESES[d.getMonth()];
+    var d = now();
+    $('time').textContent = pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes());
+    $('secs').textContent = pad(d.getUTCSeconds());
+    $('date').textContent = DIAS_LONGOS[d.getUTCDay()] + ', ' + d.getUTCDate() + ' de ' + MESES[d.getUTCMonth()];
   }
 
   // ---------- Lua (fase) ----------
@@ -241,8 +264,8 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 
   // Desenha a lua como vista do hemisfério sul (crescente iluminada à esquerda).
   function drawMoon(age) {
-    var ctx = $('moonCanvas').getContext('2d');
-    var size = 110, r = 52, cx = size / 2, cy = size / 2;
+    var canvas = $('moonCanvas'), ctx = canvas.getContext('2d');
+    var size = canvas.width, r = size / 2 - 1, cx = size / 2, cy = size / 2;
     var k = Math.cos(2 * Math.PI * age / SYNODIC);
     var litLeft = age < SYNODIC / 2;
     var LIT = '#f2e9c9', DARK = '#2a2f37';
@@ -269,20 +292,12 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
     var age = moonAge(now);
     drawMoon(age);
     $('moonName').textContent = moonPhaseName(age);
-    $('moonIllum').textContent = Math.round((1 - Math.cos(2 * Math.PI * age / SYNODIC)) / 2 * 100) + '% iluminada';
-    var toFull = (SYNODIC / 2 - age + SYNODIC) % SYNODIC;
-    var toNew = SYNODIC - age;
-    var full = new Date(now.getTime() + toFull * 86400000);
-    var nova = new Date(now.getTime() + toNew * 86400000);
-    var parts = [['Cheia', full], ['Nova', nova]];
-    if (toNew < toFull) parts.reverse();
-    $('moonNext').textContent = parts[0][0] + ' ' + ddmm(parts[0][1]) + '  ·  ' + parts[1][0] + ' ' + ddmm(parts[1][1]);
+    $('moonIllum').textContent = Math.round((1 - Math.cos(2 * Math.PI * age / SYNODIC)) / 2 * 100) + '%';
   }
 
-  function moonTimeNode(label, iso) {
-    var span = el('span', '', label + ' ' + (iso ? hhmm(iso) : '--:--'));
-    if (iso && iso.substr(0, 10) !== todayISO()) span.appendChild(el('small', '', ' amanhã'));
-    return span;
+  function moonTime(id, label, iso) {
+    $(id + 'Label').textContent = label + (iso && iso.substr(0, 10) !== todayISO() ? ' amanhã' : '');
+    $(id).textContent = iso ? hhmm(iso) : '--:--';
   }
 
   function renderSky(sun, moon) {
@@ -290,11 +305,8 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
     $('sunset').textContent = hhmm(sun.sunset);
     var mins = Math.round(sun.daylight_duration / 60);
     $('daylen').textContent = Math.floor(mins / 60) + 'h' + pad(mins % 60);
-    var box = $('moonTimes');
-    box.innerHTML = '';
-    box.appendChild(moonTimeNode('Nasce', moon.rise));
-    box.appendChild(document.createTextNode('  ·  '));
-    box.appendChild(moonTimeNode('Põe', moon.set));
+    moonTime('moonRise', 'Nasce', moon.rise);
+    moonTime('moonSet', 'Põe', moon.set);
   }
 
   // ---------- Tempo ----------
@@ -421,38 +433,168 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
     detail(det, 'Nuvens', cur.cloud_cover + '%');
     detail(det, 'Visibilidade', (cur.visibility >= 10000 ? '10+' : (cur.visibility / 1000).toFixed(1)) + ' km');
 
-    var hs = add(box, el('div', 'section sep'));
-    add(hs, el('div', 'label', 'Próximas 12 horas'));
+    var hs = add(box, el('div', 'section sep col grow'));
+    add(hs, el('div', 'label', 'Próximas ' + hourly.time.length + ' horas'));
     var hours = add(hs, el('div', 'hours row'));
     for (var i = 0; i < hourly.time.length; i++) {
       var h = add(hours, el('div', 'hour'));
       add(h, el('div', 't', hourly.time[i].substr(11, 2) + 'h'));
       add(h, weatherIcon('i', weatherInfo(hourly.weather_code[i], hourly.is_day[i])[0]));
-      add(h, el('div', 'temp', Math.round(hourly.temperature_2m[i]) + '°'));
-      var p = hourly.precipitation_probability[i];
-      add(h, el('div', 'r', p >= 10 ? p + '%' : ''));
     }
-
-    var ds = add(box, el('div', 'section sep col grow'));
-    add(ds, el('div', 'label', 'Próximos 7 dias'));
-    renderDays(ds, daily, true);
+    // O gráfico ocupa a altura que sobrar no card (medida depois do layout).
+    var area = add(hs, el('div', 'chartArea grow'));
+    var chart = add(area, el('canvas', 'chart'));
+    redrawChart = function () {
+      drawHourChart(chart, area.offsetWidth, Math.max(area.offsetHeight, 80),
+        hourly.temperature_2m, hourly.precipitation_probability);
+    };
+    setTimeout(redrawChart, 0);
   }
 
-  function renderCompact(box, city) {
+  var redrawChart = null;
+  window.addEventListener('resize', function () { if (redrawChart) redrawChart(); });
+
+  // Linha da temperatura com o valor em cada hora; barras azuis = chance de chuva (% na base).
+  function drawHourChart(canvas, width, height, temps, probs) {
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = width * dpr; canvas.height = height * dpr;
+    canvas.style.width = width + 'px'; canvas.style.height = height + 'px';
+    var ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    var n = temps.length, col = width / n;
+    var min = Math.min.apply(null, temps), max = Math.max.apply(null, temps);
+    var base = height - 17; // faixa de baixo: % de chuva
+    var span = Math.max(max - min, 4), top = 24, bottom = base - 6;
+    function x(i) { return col * i + col / 2; }
+    function y(t) { return bottom - (t - min) / span * (bottom - top); }
+
+    ctx.fillStyle = 'rgba(88,166,255,0.22)';
+    for (var i = 0; i < n; i++) {
+      var bh = (probs[i] || 0) / 100 * (base - top);
+      ctx.fillRect(x(i) - col * 0.3, base - bh, col * 0.6, bh);
+    }
+    ctx.fillStyle = '#58a6ff'; ctx.font = '14px "Helvetica Neue", Helvetica, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    for (i = 0; i < n; i++) if (probs[i] >= 10) ctx.fillText(probs[i] + '%', x(i), height - 2);
+    ctx.strokeStyle = '#f0b72f'; ctx.lineWidth = 2; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    for (i = 0; i < n; i++) i ? ctx.lineTo(x(i), y(temps[i])) : ctx.moveTo(x(i), y(temps[i]));
+    ctx.stroke();
+    ctx.fillStyle = '#f0b72f';
+    for (i = 0; i < n; i++) { ctx.beginPath(); ctx.arc(x(i), y(temps[i]), 3, 0, 2 * Math.PI); ctx.fill(); }
+    ctx.fillStyle = '#e6edf3'; ctx.font = '19px "Helvetica Neue", Helvetica, Arial, sans-serif';
+    ctx.textAlign = 'center';
+    for (i = 0; i < n; i++) ctx.fillText(Math.round(temps[i]) + '°', x(i), y(temps[i]) - 8);
+  }
+
+  // ---------- Avisos ----------
+  var GUST_WARN = 50, GUST_STRONG = 70; // km/h
+  var RAIN_MM = 0.1, RAIN_PROB = 50;
+
+  // "2026-10-30T15:45" (hora local do painel) em ms, no mesmo referencial de now().
+  function localTime(iso) {
+    return Date.UTC(+iso.substr(0, 4), +iso.substr(5, 2) - 1, +iso.substr(8, 2),
+      +iso.substr(11, 2), +iso.substr(14, 2));
+  }
+  function inMinutes(mins) {
+    mins = Math.max(5, Math.round(mins / 5) * 5);
+    return mins < 60 ? mins + ' min' : Math.floor(mins / 60) + 'h' + (mins % 60 ? pad(mins % 60) : '');
+  }
+
+  // Minutos até o primeiro bloco de 15 min (ainda não passado) em que cond(chuva em mm) é verdadeira.
+  function firstSlot(m15, cond) {
+    if (!m15) return null;
+    var nowMs = now().getTime();
+    for (var i = 0; i < m15.time.length; i++) {
+      var t = localTime(m15.time[i]);
+      if (t + 15 * 60000 <= nowMs) continue;
+      if (cond(m15.precipitation[i] || 0)) return Math.max(0, (t - nowMs) / 60000);
+    }
+    return null;
+  }
+
+  function rainAlert(city) {
+    var cur = city.current, h = city.hourly, m15 = city.minutely_15;
+    if (cur.precipitation >= RAIN_MM) {
+      var stop = firstSlot(m15, function (mm) { return mm < RAIN_MM; });
+      return ['rain', 'Chovendo agora', stop !== null ? 'Deve parar em ~' + inMinutes(stop)
+        : 'Deve continuar nas próximas 2 horas'];
+    }
+    var start = firstSlot(m15, function (mm) { return mm >= RAIN_MM; });
+    if (start !== null) {
+      return ['rain', start < 10 ? 'Chuva começando' : 'Chuva em ~' + inMinutes(start),
+        'Pela previsão de 15 em 15 min'];
+    }
+    for (var i = 0; i < h.time.length; i++) {
+      if (h.precipitation_probability[i] >= RAIN_PROB && h.precipitation[i] >= RAIN_MM) {
+        return ['rain', 'Chuva provável às ' + h.time[i].substr(11, 2) + 'h',
+          h.precipitation_probability[i] + '% de chance'];
+      }
+    }
+    return ['ok', 'Sem chuva prevista', 'Nas próximas ' + h.time.length + ' horas'];
+  }
+
+  function windAlert(city) {
+    var cur = city.current, h = city.hourly;
+    var level = function (g) { return g >= GUST_STRONG ? 'windStrong' : 'wind'; };
+    if (cur.wind_gusts_10m >= GUST_WARN) {
+      return [level(cur.wind_gusts_10m), 'Rajadas fortes agora',
+        Math.round(cur.wind_gusts_10m) + ' km/h ' + windDir(cur.wind_direction_10m)];
+    }
+    var max = 0, at = 0;
+    for (var i = 0; i < h.time.length; i++) {
+      if (h.wind_gusts_10m[i] > max) { max = h.wind_gusts_10m[i]; at = i; }
+    }
+    if (max >= GUST_WARN) {
+      return [level(max), 'Rajadas de até ' + Math.round(max) + ' km/h',
+        'Por volta das ' + h.time[at].substr(11, 2) + 'h, vindo de ' + windDir(h.wind_direction_10m[at])];
+    }
+    return ['ok', 'Sem rajadas fortes', 'Máxima de ' + Math.round(max) + ' km/h nas próximas ' + h.time.length + ' h'];
+  }
+
+  function renderAlerts(city) {
+    var list = $('alertList');
+    list.innerHTML = '';
+    var items = [rainAlert(city), windAlert(city)];
+    for (var i = 0; i < items.length; i++) {
+      var a = add(list, el('div', 'alert ' + items[i][0]));
+      add(a, el('div', 'a1', items[i][1]));
+      add(a, el('div', 'a2', items[i][2]));
+    }
+  }
+
+  // 7 dias: alterna entre as cidades a cada WEEK_ROTATE segundos.
+  var WEEK_ROTATE = 10;
+  var weekCities = [], weekIndex = 0;
+
+  function renderWeek() {
+    var box = $('week'), city = weekCities[weekIndex];
+    if (!city) return;
     box.innerHTML = '';
-    add(box, el('div', 'cityName', city.name));
-    renderDays(box, city.daily, false);
+    var head = add(box, el('div', 'weekHead row between center'));
+    var name = add(head, el('div', 'cityName', city.name));
+    add(name, el('span', '', '  ·  próximos 7 dias'));
+    var dots = add(head, el('div', 'dots'));
+    for (var i = 0; i < weekCities.length; i++) add(dots, el('span', i === weekIndex ? 'on' : ''));
+    renderDays(box, city.daily, true);
   }
+
+  setInterval(function () {
+    if (weekCities.length < 2) return;
+    weekIndex = (weekIndex + 1) % weekCities.length;
+    renderWeek();
+  }, WEEK_ROTATE * 1000);
 
   function updateWeather() {
     getJSON('/api/weather', function (data) {
       try {
-        var compactDone = false;
         for (var i = 0; i < data.cities.length; i++) {
           var c = data.cities[i];
-          if (c.detailed) renderDetailed($('main'), c);
-          else if (!compactDone) { renderCompact($('poa'), c); compactDone = true; }
+          if (c.detailed) { renderDetailed($('main'), c); renderAlerts(c); }
         }
+        weekCities = data.cities;
+        weekIndex = weekIndex % weekCities.length;
+        renderWeek();
         renderSky(data.sun, data.moon);
       } catch (e) {
         // Ex.: servidor antigo ainda rodando com formato de dados diferente.
@@ -460,8 +602,8 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
         setTimeout(updateWeather, 60 * 1000);
         return;
       }
-      var d = new Date();
-      $('status').textContent = 'Atualizado às ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+      var d = now();
+      $('status').textContent = 'Atualizado às ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes());
       setTimeout(updateWeather, 10 * 60 * 1000);
     }, function (err) {
       $('status').textContent = 'Erro ao buscar o tempo (' + err.message + ')';
@@ -470,12 +612,31 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
   }
 
   // ---------- Câmera ----------
-  function startCamera(refreshSeconds) {
-    var cam = $('cam'), img = $('camImg');
+  // hours = "07:30-18:00" (camera.active_hours); fora dele a página não pede imagens.
+  function cameraActive(hours) {
+    if (!hours) return true;
+    var p = hours.split('-'), d = now(), m = d.getUTCHours() * 60 + d.getUTCMinutes();
+    var mins = function (s) { var hm = s.split(':'); return +hm[0] * 60 + +hm[1]; };
+    var start = mins(p[0]), end = mins(p[1]);
+    return start <= end ? m >= start && m < end : m >= start || m < end;
+  }
+
+  function startCamera(refreshSeconds, hours) {
+    var cam = $('cam'), img = $('camImg'), off = $('camOff');
     cam.style.display = 'block';
-    function next(delay) {
-      setTimeout(function () { img.src = '/api/camera.jpg?_=' + Date.now(); }, delay);
+    function load() {
+      if (!cameraActive(hours)) {
+        cam.className = 'card';
+        img.style.display = 'none';
+        off.style.display = 'block';
+        off.textContent = 'Câmera desligada até ' + hours.split('-')[0].replace(/^0/, '');
+        return setTimeout(load, 60 * 1000);
+      }
+      off.style.display = 'none';
+      img.style.display = 'block';
+      img.src = '/api/camera.jpg?_=' + Date.now();
     }
+    function next(delay) { setTimeout(load, delay); }
     img.onload = function () { next(refreshSeconds * 1000); };
     img.onerror = function () { next(15000); };
     cam.onclick = function () {
@@ -487,11 +648,13 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
   // ---------- Início ----------
   tickClock();
   setInterval(tickClock, 1000);
+  syncClock();
+  setInterval(syncClock, 60 * 60 * 1000);
   updateMoon();
   setInterval(updateMoon, 60 * 60 * 1000);
   updateWeather();
   getJSON('/api/config', function (cfg) {
-    if (cfg.camera) startCamera(cfg.camera_refresh_seconds || 5);
+    if (cfg.camera) startCamera(cfg.camera_refresh_seconds || 5, cfg.camera_hours);
   }, function () {});
 
   // O Safari do iOS 9 não tem API de tela cheia; só aberto pela Tela de Início

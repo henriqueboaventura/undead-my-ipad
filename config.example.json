@@ -26,6 +26,7 @@
     "username": "",
     "password": "",
     "force_basic_auth": false,
-    "refresh_seconds": 5
+    "refresh_seconds": 5,
+    "active_hours": "07:30-18:00"
   }
 }
