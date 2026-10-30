@@ -394,7 +394,8 @@ class RtspGrabber:
         raise RuntimeError("sem imagem da câmera (RTSP)")
 
     def _run(self):
-        cmd = [FFMPEG, "-loglevel", "error", "-rtsp_transport", "tcp", "-i", self.url,
+        # -threads 1: um quadro por segundo não precisa de decodificação paralela (~90 MB em vez de ~200 MB).
+        cmd = [FFMPEG, "-loglevel", "error", "-threads", "1", "-rtsp_transport", "tcp", "-i", self.url,
                "-an", "-vf", "fps=%s" % self.fps, "-q:v", "6", "-f", "mjpeg", "pipe:1"]
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         buf = b""
