@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Painel">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon.png">
 <style>
 /* Feito para Safari do iOS 9 (iPad mini 1, 1024x768): sem CSS grid, sem variáveis CSS. */
 * { box-sizing: border-box; -webkit-box-sizing: border-box; margin: 0; padding: 0; }
@@ -25,7 +27,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 .sep { border-top: 1px solid #30363d; }
 
 #app { height: 100%; padding: 12px; }
-#left { width: 300px; margin-right: 12px; }
+#left { width: 340px; margin-right: 12px; }
 #left > .card { margin-bottom: 12px; }
 #left > .card:last-child { margin-bottom: 0; }
 
@@ -53,8 +55,9 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 .cityName { font-size: 25px; font-weight: 500; }
 .cityName span { font-weight: 300; color: #8b949e; font-size: 18px; }
 .nowMain { margin: 4px 0 2px; }
-.nowIcon { font-size: 50px; line-height: 1; margin-right: 10px; }
+.nowIcon { font-size: 66px; line-height: 1; margin-right: 10px; }
 .nowTemp { font-size: 70px; font-weight: 200; line-height: 1; }
+.nowDesc { font-size: 18px; margin-bottom: 2px; }
 .nowRange { font-size: 17px; }
 .details { -webkit-flex-wrap: wrap; flex-wrap: wrap; -webkit-align-content: space-between; align-content: space-between; }
 .detail { width: 33.33%; padding: 3px 0 3px 12px; border-left: 1px solid #30363d; margin-bottom: 6px; }
@@ -90,7 +93,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 #poa .dayExtra { margin-top: 1px; }
 
 /* Câmera */
-#cam { height: 169px; padding: 0; overflow: hidden; position: relative; display: none; background: #000; }
+#cam { height: 191px; padding: 0; overflow: hidden; position: relative; display: none; background: #000; }
 #cam img { width: 100%; height: 100%; object-fit: cover; display: block; }
 #cam .camLabel { position: absolute; left: 8px; bottom: 6px; font-size: 12px; color: #fff; text-shadow: 0 1px 2px #000; }
 #cam.full { position: fixed; left: 0; top: 0; right: 0; bottom: 0; width: auto; height: auto;
@@ -352,11 +355,11 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 
     var top = add(box, el('div', 'row'));
     var nowB = add(top, el('div', 'nowBlock col'));
-    var name = add(nowB, el('div', 'cityName', city.name + ' '));
-    add(name, el('span', '', w[1]));
+    add(nowB, el('div', 'cityName', city.name));
     var main = add(nowB, el('div', 'nowMain row center'));
     add(main, el('div', 'nowIcon', w[0]));
     add(main, el('div', 'nowTemp', Math.round(cur.temperature_2m) + '°'));
+    add(nowB, el('div', 'nowDesc', w[1]));
     add(nowB, el('div', 'nowRange muted', 'Máx ' + Math.round(daily.temperature_2m_max[0]) +
       '°  ·  Mín ' + Math.round(daily.temperature_2m_min[0]) + '°'));
 
