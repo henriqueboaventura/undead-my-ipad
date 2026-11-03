@@ -225,7 +225,7 @@ segundo (só enquanto o painel estiver aberto) e o iPad busca a mais recente.
 2. Se existir: aba Eu → Tapo Lab → **Compatibilidade com terceiros** → ligado.
 3. `config.json`:
    ```json
-   "rtsp_url": "rtsp://USUARIO:SENHA@192.168.0.69:554/stream2"
+   "rtsp_url": "rtsp://USUARIO:SENHA@192.168.1.210:554/stream2"
    ```
    `stream2` = leve (recomendado); `stream1` = resolução máxima.
 
@@ -233,20 +233,21 @@ segundo (só enquanto o painel estiver aberto) e o iPad busca a mais recente.
 
 ```
 Internet ─ Claro 192.168.0.1
-             ├─ computador do painel, iPad
              └─ TP-Link Archer AX23 (lado Claro: 192.168.0.69)
+                   ├─ computador do painel 192.168.1.114 (IP fixo)
+                   ├─ iPad
                    └─ Tapo C500 192.168.1.210
 ```
 
-O computador fica na rede da Claro e não enxerga a rede da TP-Link. Por isso:
+Computador, iPad e câmera ficam todos no Wi-Fi da TP-Link, então o servidor
+fala direto com a câmera e o iPad abre `http://192.168.1.114:8090`.
 
-- **TP-Link** (`http://tplinkwifi.net`, conectado no Wi-Fi dela):
-  - Advanced → NAT Forwarding → **Port Forwarding** → Add: IP `192.168.1.210`,
-    portas externa e interna `554`, TCP.
-  - Advanced → Network → DHCP Server → **Address Reservation**: câmera em
-    `192.168.1.210`.
-- **Claro** (`http://192.168.0.1`): reserva de IP DHCP `192.168.0.69` para o MAC
-  da WAN do AX23. Confira que **não há DMZ** apontando para a TP-Link.
+- **TP-Link** (`http://tplinkwifi.net`): Advanced → Network → DHCP Server →
+  **Address Reservation**: câmera em `192.168.1.210` e computador em
+  `192.168.1.114`.
+- Se o computador voltar para a rede da Claro, ele deixa de enxergar a câmera:
+  aí é preciso um Port Forwarding da porta `554` na TP-Link para
+  `192.168.1.210` e usar `192.168.0.69` na `rtsp_url`.
 
 Em outra rede, basta o computador alcançar a câmera; use o IP dela direto
 na `rtsp_url`.
@@ -292,6 +293,6 @@ aparecem uma vez.
 |---|---|
 | Página abre mas nada aparece | Servidor antigo rodando com código novo: reinicie. Veja a mensagem abaixo do relógio. |
 | Câmera preta | `server.log` com "No route to host": servidor rodando com o Python do Homebrew. Use `/usr/bin/python3` (o script de instalação já usa). |
-| Câmera preta, log "sem imagem da câmera" | Teste a porta: `nc -z 192.168.0.69 554`. Fechada → revise o Port Forwarding na TP-Link e a reserva de IP na Claro. |
+| Câmera preta, log "sem imagem da câmera" | Teste a porta: `nc -z 192.168.1.210 554`. Fechada → confira se o computador está no Wi-Fi da TP-Link e a reserva de IP da câmera. |
 | `Address already in use` | Outro programa na porta. Mude `port` no `config.json` ou pare o servidor antigo: `lsof -ti tcp:8090 -sTCP:LISTEN \| xargs kill`. |
-| iPad não abre a página | Confira o IP do computador e se os dois estão na mesma rede (Claro). |
+| iPad não abre a página | Confira o IP do computador e se os dois estão na mesma rede (TP-Link). |

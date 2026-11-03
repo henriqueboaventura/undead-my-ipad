@@ -22,7 +22,7 @@
     "max_events": 12
   },
   "camera": {
-    "rtsp_url": "rtsp://USUARIO:SENHA@192.168.0.69:554/stream2",
+    "rtsp_url": "rtsp://USUARIO:SENHA@192.168.1.210:554/stream2",
     "snapshot_url": "",
     "username": "",
     "password": "",
