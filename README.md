@@ -230,25 +230,36 @@ segundo (só enquanto o painel estiver aberto) e o iPad busca a mais recente.
    ```
    `stream2` = leve (recomendado); `stream1` = resolução máxima.
 
-### Rede desta casa (dois roteadores)
+### Rede desta casa
 
 ```
-Internet ─ Claro 192.168.0.1
-             └─ TP-Link Archer AX23 (lado Claro: 192.168.0.69)
-                   ├─ computador do painel 192.168.1.114 (IP fixo)
-                   ├─ iPad
-                   └─ Tapo C500 192.168.1.210
+Internet ─ Claro HG8245W5 192.168.0.1  (modem; Wi-Fi só reserva, oculto)
+             └─ TP-Link Archer AX23  (roteador + EasyMesh)
+                  lado Claro: 192.168.0.69 (DMZ)
+                  lado casa:  192.168.1.1
+                    ├─ RE315   (satélite EasyMesh, dentro de casa)
+                    ├─ RE605X  (satélite EasyMesh, área da rua)
+                    ├─ computador do painel 192.168.1.114
+                    ├─ Tapo C500            192.168.1.210
+                    └─ iPad, demais aparelhos
 ```
 
-Computador, iPad e câmera ficam todos no Wi-Fi da TP-Link, então o servidor
-fala direto com a câmera e o iPad abre `http://192.168.1.114:8090`.
+Tudo fica na rede do AX23 (`192.168.1.x`): o computador alcança a câmera
+direto, sem port forwarding.
 
-- **TP-Link** (`http://tplinkwifi.net`): Advanced → Network → DHCP Server →
-  **Address Reservation**: câmera em `192.168.1.210` e computador em
-  `192.168.1.114`.
-- Se o computador voltar para a rede da Claro, ele deixa de enxergar a câmera:
-  aí é preciso um Port Forwarding da porta `554` na TP-Link para
-  `192.168.1.210` e usar `192.168.0.69` na `rtsp_url`.
+- **AX23** (`http://192.168.1.1`): Advanced → Network → DHCP Server →
+  **Address Reservation** para câmera (`192.168.1.210`), computador do painel
+  (`192.168.1.114`), iPad e extensores. Em Macs com reserva, use Ajustes →
+  Wi-Fi → Detalhes → **Endereço Wi-Fi privado: Fixo** (ou Desativado), senão o
+  MAC muda e a reserva deixa de valer.
+- **Claro** (`http://192.168.0.1`): reserva DHCP `192.168.0.69` para o MAC
+  da WAN do AX23 e **DMZ** apontando para `192.168.0.69`.
+  O Wi-Fi da Claro fica desligado, exceto uma rede reserva de 2,4 GHz oculta
+  para emergências (ou use cabo numa porta LAN dela).
+- **5 GHz do AX23**: no canal 149 o RE605X só conecta ao AX23 pelo 2,4 GHz;
+  nos canais 36–48 ele usa o 5 GHz, mas o Wi-Fi da casa fica mais lento
+  (bloco dividido com vizinhos). Fixe o canal (não use automático).
+- **iPad mini 1**: use WPA2 (AES) ou WPA2/WPA3 misto; WPA3 puro não conecta.
 
 Em outra rede, basta o computador alcançar a câmera; use o IP dela direto
 na `rtsp_url`.
@@ -294,6 +305,6 @@ aparecem uma vez.
 |---|---|
 | Página abre mas nada aparece | Servidor antigo rodando com código novo: reinicie. Veja a mensagem abaixo do relógio. |
 | Câmera preta | `server.log` com "No route to host": servidor rodando com o Python do Homebrew. Use `/usr/bin/python3` (o script de instalação já usa). |
-| Câmera preta, log "sem imagem da câmera" | Teste a porta: `nc -z 192.168.1.210 554`. Fechada → confira se o computador está no Wi-Fi da TP-Link e a reserva de IP da câmera. |
+| Câmera preta, log "sem imagem da câmera" | Teste a porta: `nc -z 192.168.1.210 554`. Fechada → confira se a câmera está online no app Tapo e se a reserva de IP dela no AX23 está ativa. |
 | `Address already in use` | Outro programa na porta. Mude `port` no `config.json` ou pare o servidor antigo: `lsof -ti tcp:8090 -sTCP:LISTEN \| xargs kill`. |
-| iPad não abre a página | Confira o IP do computador e se os dois estão na mesma rede (TP-Link). |
+| iPad não abre a página | Confira o IP do computador e se os dois estão na mesma rede (`192.168.1.x`). |
