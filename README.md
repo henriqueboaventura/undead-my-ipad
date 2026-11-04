@@ -82,6 +82,7 @@ Preencha:
 - `reminders`: lembretes fixos que aparecem no card de Avisos nos dias
   escolhidos (`seg ter qua qui sex sab dom`). Ex.:
   `{"days": ["seg", "qua", "sex"], "text": "Dia de lixo", "detail": "Colocar o lixo para fora"}`.
+  Com `"urgent": true` o lembrete aparece em vermelho e negrito.
 - `night_hours`: modo noturno (padrão `23:00-06:00`). Nesse horário a tela
   fica preta, só com o relógio apagado; um toque mostra o painel por 1 min.
   Deixe `""` para desligar.

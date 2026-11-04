@@ -67,6 +67,8 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 .alert.windStrong { border-color: #f85149; }
 .alert.windStrong .a1 { color: #ff7b72; }
 .alert.reminder { border-color: #bc8cff; }
+.alert.urgent { border-color: #f85149; }
+.alert.urgent .a1 { color: #ff7b72; font-weight: 700; }
 
 
 /* Osório (detalhado) */
@@ -635,6 +637,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
   }
 
   // Lembretes fixos do config.json: {"days": ["seg", "qua", "sex"], "text": "...", "detail": "..."}.
+  // Com "urgent": true o lembrete aparece em vermelho e negrito.
   var DIAS_CFG = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
   var reminders = [], alertCity = null;
 
@@ -644,7 +647,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
       var r = reminders[i], days = r.days || [];
       for (var j = 0; j < days.length; j++) {
         if (days[j].toLowerCase().replace('á', 'a').substr(0, 3) === today) {
-          out.push(['reminder', r.text, r.detail || 'Hoje']);
+          out.push(['reminder' + (r.urgent ? ' urgent' : ''), r.text, r.detail || 'Hoje']);
           break;
         }
       }
