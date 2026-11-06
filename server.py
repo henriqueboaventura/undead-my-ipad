@@ -567,6 +567,13 @@ class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=ROOT, **kwargs)
 
+    def end_headers(self):
+        # A página: o iPad sempre confere se mudou (responde 304 se não), senão o
+        # Safari fica dias com a versão antiga em cache.
+        if self.path.split("?")[0] in ("/", "/index.html"):
+            self.send_header("Cache-Control", "no-cache")
+        super().end_headers()
+
     def send_bytes(self, body, ctype, status=200):
         self.send_response(status)
         self.send_header("Content-Type", ctype)
