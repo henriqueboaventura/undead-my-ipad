@@ -16,6 +16,7 @@ import re
 import shutil
 import socket
 import subprocess
+import sys
 import threading
 import time
 import urllib.parse
@@ -421,7 +422,7 @@ class RtspGrabber:
 
     def get(self):
         self.last_request = time.time()
-        for _ in range(200):  # espera até 20s por um quadro recente
+        for _ in range(400):  # espera até 40s por um quadro recente (~15s no Raspberry Pi 1)
             with self.lock:
                 if self.frame and time.time() - self.frame_at > self.STALE and self.proc:
                     self.proc.kill()  # travou (ex.: troca de rede): o _run termina e recomeça
@@ -535,10 +536,12 @@ def get_camera_snapshot():
     if cam.get("rtsp_url"):
         with _rtsp_lock:
             if _rtsp is None:
-                parts = urllib.parse.urlsplit(cam["rtsp_url"])
-                local_port = start_tcp_relay(parts.hostname, parts.port or 554)
-                auth = parts.netloc.rsplit("@", 1)[0] + "@" if "@" in parts.netloc else ""
-                url = parts._replace(netloc="%s127.0.0.1:%d" % (auth, local_port)).geturl()
+                url = cam["rtsp_url"]
+                if sys.platform == "darwin":  # só o macOS precisa da ponte (ver start_tcp_relay)
+                    parts = urllib.parse.urlsplit(url)
+                    local_port = start_tcp_relay(parts.hostname, parts.port or 554)
+                    auth = parts.netloc.rsplit("@", 1)[0] + "@" if "@" in parts.netloc else ""
+                    url = parts._replace(netloc="%s127.0.0.1:%d" % (auth, local_port)).geturl()
                 _rtsp = RtspGrabber(url)
         return _rtsp.get()
     url = cam.get("snapshot_url")

@@ -27,6 +27,7 @@ Arquivos:
 | `config.json` | Sua configuração com senhas — **fora do git** |
 | `scripts/install-macos.sh` | Instala como serviço no macOS (roda sem terminal) |
 | `scripts/uninstall-macos.sh` | Remove o serviço |
+| `scripts/install-raspberry.sh` | Instala como serviço systemd no Raspberry Pi / Linux |
 | `apps-script.gs` | Opcional: ponte para Google Agenda |
 
 ---
@@ -148,44 +149,60 @@ O iPad pega a página nova sozinho em até 6 h, ou na hora se recarregar.
 
 ---
 
-## Instalar em Linux / Raspberry Pi (alternativa)
+## Instalar no Raspberry Pi / Linux
 
-Funciona igual e gasta menos energia que um Mac ligado. Não tem o problema de
-Rede Local do macOS.
+Gasta menos energia que um Mac ligado e não tem o problema de Rede Local do
+macOS. Roda até num **Raspberry Pi 1 B+** (2014): é o servidor desta casa
+(`painel`, `192.168.1.236`, no cabo do AX23).
 
-```sh
-sudo apt install -y git python3 ffmpeg tzdata gh
-gh auth login
-gh repo clone henriqueboaventura/ipad-page ~/ipad-page
-cd ~/ipad-page && cp config.example.json config.json && nano config.json
-python3 server.py   # teste; Ctrl+C para parar
-```
+### 1. Gravar o cartão
 
-Python 3.9 ou mais novo (`python3 --version`). Para rodar sem terminal, crie
-`/etc/systemd/system/painel.service` (troque `pi` pelo seu usuário):
+No Raspberry Pi Imager: escolha o modelo do Pi → **Raspberry Pi OS Lite** (sem
+interface gráfica; no Pi 1, a de 32 bits) → em *Edit settings*: hostname
+`painel`, seu usuário, SSH com chave pública, fuso `America/Sao_Paulo`. Sem
+Wi-Fi se for usar cabo. O primeiro boot de um Pi 1 leva ~10 min.
 
-```ini
-[Unit]
-Description=Painel iPad
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-User=pi
-WorkingDirectory=/home/pi/ipad-page
-ExecStart=/usr/bin/python3 -u server.py
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
+### 2. Instalar
 
 ```sh
-sudo systemctl daemon-reload
-sudo systemctl enable --now painel     # inicia agora e em todo boot
-journalctl -u painel -f                # log
-sudo systemctl restart painel          # reiniciar
+sudo apt update && sudo apt full-upgrade -y   # ~1 h num Pi 1
+sudo apt install -y git python3 ffmpeg
 ```
+
+O repositório é privado. Copie do Mac (inclui o `config.json`):
+
+```sh
+# no Mac, dentro da pasta do projeto
+rsync -a --exclude server.log ./ USUARIO@IP-DO-PI:~/ipad-page/
+```
+
+ou clone com `sudo apt install gh && gh auth login && gh repo clone
+henriqueboaventura/ipad-page ~/ipad-page` e crie o `config.json` como no macOS.
+
+```sh
+cd ~/ipad-page
+./scripts/install-raspberry.sh
+```
+
+O script cria o serviço `painel` (inicia no boot, reinicia se cair) e deixa os
+logs do sistema só na RAM, para poupar o cartão SD.
+
+| Para... | Rode |
+|---|---|
+| Ver se está rodando | `systemctl status painel` |
+| Ver o log | `journalctl -u painel -f` |
+| Reiniciar (após mudar `config.json`) | `sudo systemctl restart painel` |
+| Atualizar | copie de novo com `rsync` (ou `git pull`) e reinicie |
+
+### Raspberry Pi 1 B+: o que observar
+
+- **Câmera**: o ffmpeg decodifica só os quadros-chave (`-skip_frame nokey`) e
+  usa ~55% da CPU enquanto o painel está aberto. A primeira imagem leva ~15 s.
+- **Energia**: luz vermelha apagada ou piscando = tensão baixa, o que trava o
+  Pi e corrompe o cartão. Use fonte de 2,5 A e **cabo micro-USB curto e
+  grosso**. Confira com `vcgencmd get_throttled`: o último dígito deve ser `0`.
+- **Sem Wi-Fi**: use cabo de rede (ou adaptador USB) e reserve o IP no
+  roteador.
 
 ---
 
@@ -239,7 +256,7 @@ Internet ─ Claro HG8245W5 192.168.0.1  (modem; Wi-Fi só reserva, oculto)
                   lado casa:  192.168.1.1
                     ├─ RE315   (satélite EasyMesh, dentro de casa)
                     ├─ RE605X  (satélite EasyMesh, área da rua)
-                    ├─ computador do painel 192.168.1.114
+                    ├─ Raspberry Pi (painel) 192.168.1.236 (cabo)
                     ├─ Tapo C500            192.168.1.210
                     └─ iPad, demais aparelhos
 ```
@@ -248,8 +265,8 @@ Tudo fica na rede do AX23 (`192.168.1.x`): o computador alcança a câmera
 direto, sem port forwarding.
 
 - **AX23** (`http://192.168.1.1`): Advanced → Network → DHCP Server →
-  **Address Reservation** para câmera (`192.168.1.210`), computador do painel
-  (`192.168.1.114`), iPad e extensores. Em Macs com reserva, use Ajustes →
+  **Address Reservation** para câmera (`192.168.1.210`), Raspberry Pi do painel
+  (`192.168.1.236`), iPad e extensores. Em Macs com reserva, use Ajustes →
   Wi-Fi → Detalhes → **Endereço Wi-Fi privado: Fixo** (ou Desativado), senão o
   MAC muda e a reserva deixa de valer.
 - **Claro** (`http://192.168.0.1`): reserva DHCP `192.168.0.69` para o MAC
