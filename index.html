@@ -274,12 +274,17 @@ body.nightOn .toast.danger { display: block; }
   // Hora do painel = hora do servidor no fuso do config.json. O fuso do iOS 9 ainda tem
   // horário de verão no Brasil (abolido em 2019) e o relógio do iPad pode estar atrasado.
   // now() devolve um Date cujos campos UTC são a hora local do painel: ler com getUTC*.
-  var clockShift = -new Date().getTimezoneOffset() * 60000; // até o servidor responder
+  var tzShift = -new Date().getTimezoneOffset() * 60000; // até o servidor responder
+  var clockShift = tzShift;
   function now() { return new Date(Date.now() + clockShift); }
+  // Instante real (UTC de verdade), corrigido pelo relógio do servidor: para cálculos absolutos (lua).
+  function nowAbs() { return new Date(Date.now() + clockShift - tzShift); }
   function syncClock() {
     var sent = Date.now();
     getJSON('/api/time', function (t) {
-      clockShift = t.now + (Date.now() - sent) / 2 - Date.now() + t.offset * 60000;
+      tzShift = t.offset * 60000;
+      clockShift = t.now + (Date.now() - sent) / 2 - Date.now() + tzShift;
+      updateMoon();
       tickClock();
     }, function () {});
   }
@@ -390,8 +395,7 @@ body.nightOn .toast.danger { display: block; }
   }
 
   function updateMoon() {
-    var now = new Date();
-    var age = moonAge(now);
+    var age = moonAge(nowAbs());
     drawMoon(age);
     $('moonName').textContent = moonPhaseName(age);
     $('moonIllum').textContent = Math.round((1 - Math.cos(2 * Math.PI * age / SYNODIC)) / 2 * 100) + '%';
