@@ -61,8 +61,8 @@ O repositório é privado; entre na sua conta do GitHub antes:
 ```sh
 brew install gh
 gh auth login
-gh repo clone henriqueboaventura/ipad-page ~/ipad-page
-cd ~/ipad-page
+gh repo clone henriqueboaventura/undead-my-ipad ~/undead-my-ipad
+cd ~/undead-my-ipad
 ```
 
 ### 3. Configurar
@@ -126,7 +126,7 @@ Comandos úteis:
 | Para... | Rode |
 |---|---|
 | Ver se está rodando | `launchctl print gui/$(id -u)/com.painel.ipad \| grep state` |
-| Ver o log | `tail -f ~/ipad-page/server.log` |
+| Ver o log | `tail -f ~/undead-my-ipad/server.log` |
 | Reiniciar (após mudar `config.json`) | `launchctl kickstart -k gui/$(id -u)/com.painel.ipad` |
 | Parar e remover o início automático | `./scripts/uninstall-macos.sh` |
 
@@ -145,7 +145,7 @@ Comandos úteis:
 ### 6. Atualizar para uma versão nova
 
 ```sh
-cd ~/ipad-page
+cd ~/undead-my-ipad
 git pull
 launchctl kickstart -k gui/$(id -u)/com.painel.ipad
 ```
@@ -178,14 +178,14 @@ O repositório é privado. Copie do Mac (inclui o `config.json`):
 
 ```sh
 # no Mac, dentro da pasta do projeto
-rsync -a --exclude server.log ./ USUARIO@IP-DO-PI:~/ipad-page/
+rsync -a --exclude server.log ./ USUARIO@IP-DO-PI:~/undead-my-ipad/
 ```
 
 ou clone com `sudo apt install gh && gh auth login && gh repo clone
-henriqueboaventura/ipad-page ~/ipad-page` e crie o `config.json` como no macOS.
+henriqueboaventura/undead-my-ipad ~/undead-my-ipad` e crie o `config.json` como no macOS.
 
 ```sh
-cd ~/ipad-page
+cd ~/undead-my-ipad
 ./scripts/install-raspberry.sh
 ```
 
