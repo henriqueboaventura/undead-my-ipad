@@ -141,7 +141,8 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 #cam .camLabel { position: absolute; left: 8px; bottom: 6px; font-size: 12px; color: #fff; text-shadow: 0 1px 2px #000; }
 #camOff { display: none; position: absolute; left: 0; right: 0; top: 50%; margin-top: -10px;
   text-align: center; font-size: 16px; color: #8b949e; }
-#cam.full { position: fixed; left: 0; top: 0; right: 0; bottom: 0; width: auto; height: auto;
+/* #left.hasAgenda repetido: precisa vencer a altura fixa de 222px. */
+#cam.full, #left.hasAgenda #cam.full { position: fixed; left: 0; top: 0; right: 0; bottom: 0; width: auto; height: auto;
   margin: 0; z-index: 10; border-radius: 0; }
 #cam.full img { object-fit: contain; }
 
@@ -1134,7 +1135,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
     cam.style.display = 'block';
     function load() {
       if (!cameraActive(hours)) {
-        cam.className = 'card';
+        cam.className = 'card grow';
         img.style.display = 'none';
         off.style.display = 'block';
         off.textContent = 'Câmera desligada até ' + hours.split('-')[0].replace(/^0/, '');
@@ -1148,7 +1149,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
     img.onload = function () { next(refreshSeconds * 1000); };
     img.onerror = function () { next(15000); };
     cam.onclick = function () {
-      cam.className = cam.className.indexOf('full') >= 0 ? 'card' : 'card full';
+      cam.className = cam.className.indexOf('full') >= 0 ? 'card grow' : 'card grow full';
     };
     next(0);
   }
