@@ -520,7 +520,12 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
     detail(det, 'Visibilidade', (cur.visibility >= 10000 ? '10+' : (cur.visibility / 1000).toFixed(1)) + ' km');
 
     var hs = add(box, el('div', 'section sep col grow'));
-    add(hs, el('div', 'label', 'Próximas ' + hourly.time.length + ' horas'));
+    var lab = add(hs, el('div', 'row between center'));
+    add(lab, el('div', 'label', 'Próximas ' + hourly.time.length + ' horas'));
+    if (mainCities.length > 1) {
+      var dots = add(lab, el('div', 'dots'));
+      for (var k = 0; k < mainCities.length; k++) add(dots, el('span', k === mainIndex ? 'on' : ''));
+    }
     var hours = add(hs, el('div', 'hours row'));
     for (var i = 0; i < hourly.time.length; i++) {
       var h = add(hours, el('div', 'hour'));
@@ -535,6 +540,17 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
         hourly.temperature_2m, hourly.precipitation_probability);
     };
     setTimeout(redrawChart, 0);
+  }
+
+  // Card de cima: cidade principal ("detailed"); deslizar mostra as outras cidades.
+  // Não troca sozinho e volta para a principal depois de MAIN_BACK segundos sem toque.
+  var MAIN_BACK = 60;
+  var mainCities = [], mainIndex = 0, mainTimer = null;
+
+  function renderMain() {
+    if (!mainCities.length) return;
+    mainIndex = Math.min(mainIndex, mainCities.length - 1);
+    renderDetailed($('main'), mainCities[mainIndex]);
   }
 
   var redrawChart = null;
@@ -832,6 +848,14 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
   var WEEK_SWIPE_PAUSE = 30;
   onSwipe($('week'), function (step) { showWeekPage(step, WEEK_SWIPE_PAUSE); });
 
+  onSwipe($('main'), function (step) {
+    if (mainCities.length < 2) return;
+    var i = Math.max(0, Math.min(mainCities.length - 1, mainIndex + step));
+    if (i !== mainIndex) { mainIndex = i; renderMain(); }
+    clearTimeout(mainTimer);
+    mainTimer = setTimeout(function () { mainIndex = 0; renderMain(); }, MAIN_BACK * 1000);
+  });
+
   // ---------- Agenda (card da esquerda) ----------
   // Um dia por vez, sempre em Hoje. Deslizar mostra os próximos dias (até AGENDA_DAYS);
   // sem tocar por AGENDA_BACK segundos volta para Hoje. Não troca sozinha.
@@ -901,10 +925,14 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
   function updateWeather() {
     getJSON('/api/weather', function (data) {
       try {
+        var others = [];
         for (var i = 0; i < data.cities.length; i++) {
           var c = data.cities[i];
-          if (c.detailed) { renderDetailed($('main'), c); alertCity = c; }
+          if (c.detailed) alertCity = c;
+          else if (c.current) others.push(c);  // servidor antigo só manda current da principal
         }
+        mainCities = alertCity ? [alertCity].concat(others) : others;
+        renderMain();
         weekCities = data.cities;
         renderWeek();
         renderSky(data.sun, data.moon);

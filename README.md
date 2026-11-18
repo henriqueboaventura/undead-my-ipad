@@ -89,8 +89,10 @@ Preencha:
 - `night_hours`: modo noturno (padrão `23:00-06:00`). Nesse horário a tela
   fica preta, só com o relógio apagado; um toque mostra o painel por 1 min.
   Deixe `""` para desligar.
-- `cities`: cidades e coordenadas. A cidade com `"detailed": true` ganha a
-  previsão completa.
+- `cities`: cidades e coordenadas. A cidade com `"detailed": true` é a
+  principal: aparece no card de cima, nos avisos e no fundo. Deslizando no card
+  de cima aparece a previsão completa das outras; sem tocar por 1 min, volta
+  para a principal.
 
 ### 4. Testar no terminal
 

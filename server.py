@@ -150,10 +150,12 @@ def get_weather():
             data = [data]
         cities = []
         for city, d in zip(CONFIG["cities"], data):
-            c = {"name": city["name"], "detailed": bool(city.get("detailed")), "daily": d["daily"]}
+            # Todas as cidades levam o tempo atual e as próximas horas (card de cima desliza
+            # entre elas); "detailed" marca a cidade principal (avisos, fundo, card padrão).
+            c = {"name": city["name"], "detailed": bool(city.get("detailed")), "daily": d["daily"],
+                 "current": d["current"],
+                 "hourly": {k: v[1:] for k, v in d["hourly"].items()}}  # pula a hora atual
             if c["detailed"]:
-                c["current"] = d["current"]
-                c["hourly"] = {k: v[1:] for k, v in d["hourly"].items()}  # pula a hora atual
                 c["minutely_15"] = d.get("minutely_15")
             cities.append(c)
         first = CONFIG["cities"][0]
