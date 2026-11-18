@@ -378,7 +378,7 @@ def get_calendar():
                 url = "https://" + url[len("webcal://"):]
             text = fetch_cached(url, 30)
             if text:
-                for ev in build_agenda([text], cal.get("days", 14)):
+                for ev in build_agenda([text], cal.get("days", 5)):
                     ev["cal"] = name
                     agenda.append(ev)
         # Apps Script (apps-script.gs) já devolve os eventos prontos em JSON.
@@ -395,7 +395,7 @@ def get_calendar():
             if key not in seen:
                 seen.add(key)
                 unique.append(ev)
-        body = json.dumps(unique[:cal.get("max_events", 12)]).encode("utf-8")
+        body = json.dumps(unique[:cal.get("max_events", 50)]).encode("utf-8")
         _cal_cache.update(at=time.time(), body=body)
         return body
 

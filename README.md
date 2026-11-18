@@ -2,8 +2,9 @@
 
 Página única para um iPad mini de 1ª geração (iOS 9.3.5) usado como tela fixa:
 relógio, sol e lua (nascer/pôr e fase), tempo detalhado de Osório (agora,
-gráfico das próximas 14 h, avisos de chuva e rajadas), 7 dias alternando
-entre Osório e Porto Alegre e a câmera Tapo de casa.
+gráfico das próximas 14 h), 7 dias alternando entre Osório e Porto Alegre,
+agenda (hoje e os próximos dias), a câmera Tapo de casa e notificações (chuva,
+rajadas, lembretes) que dá para adiar.
 
 ## Como funciona
 
@@ -80,10 +81,11 @@ Preencha:
   `07:30-18:00`). Fora dele a página mostra "Câmera desligada" e o ffmpeg
   não roda. Deixe `""` para a câmera ficar sempre ligada.
 - `port`: porta do painel (padrão `8090`). Mude se já estiver em uso.
-- `reminders`: lembretes fixos que aparecem no card de Avisos nos dias
+- `reminders`: lembretes fixos que aparecem como notificação nos dias
   escolhidos (`seg ter qua qui sex sab dom`). Ex.:
   `{"days": ["seg", "qua", "sex"], "text": "Dia de lixo", "detail": "Colocar o lixo para fora"}`.
-  Com `"urgent": true` o lembrete aparece em vermelho e negrito.
+  `"level"`: `"info"` (azul, padrão), `"warning"` (amarelo) ou `"danger"`
+  (vermelho); `"urgent": true` vale como `"danger"`.
 - `night_hours`: modo noturno (padrão `23:00-06:00`). Nesse horário a tela
   fica preta, só com o relógio apagado; um toque mostra o painel por 1 min.
   Deixe `""` para desligar.
@@ -226,10 +228,20 @@ Atualizações automáticas: relógio a cada 1 s, câmera a cada 5 s
 (`refresh_seconds`, só dentro de `active_hours`), tempo/sol/lua/avisos a cada
 10 min, página inteira a cada 6 h.
 
-Avisos (card abaixo do sol e lua): chuva começando ou parando (previsão de
-15 em 15 min), chuva provável nas próximas 14 h (≥ 50%) e rajadas a partir de
-50 km/h (vermelho a partir de 70 km/h). Os limites ficam no início da seção
-Avisos do `index.html`.
+Notificações (flutuam no canto inferior direito):
+
+| Nível | Quando |
+|---|---|
+| info (azul) | chuva provável nas próximas 14 h (≥ 50%); lembretes sem `level` |
+| warning (amarelo) | chovendo agora ou chuva chegando (previsão de 15 em 15 min); rajadas ≥ 50 km/h |
+| danger (vermelho) | rajadas ≥ 70 km/h; previsão sem atualizar há 25 min; lembretes `urgent` |
+
+Toque numa notificação para ver as ações: **15 min / 1 h / 3 h** adiam,
+**OK** dispensa até o fim do dia (volta se o nível subir, ex.: rajadas
+passando de 50 para 70 km/h). Quando o aviso some (parou a chuva) e volta, ele
+aparece de novo. Adiamentos ficam no `localStorage` do iPad. Para ver como
+ficam sem esperar chuva, abra a página com `?avisos=1` (um exemplo de cada nível). Os limites ficam
+no início da seção Avisos do `index.html`.
 
 ---
 
@@ -285,9 +297,10 @@ na `rtsp_url`.
 
 ## Agenda (opcional)
 
-Com agendas configuradas, o card de baixo ganha uma terceira página (depois dos
-7 dias de cada cidade) com os próximos eventos em duas colunas, uma cor por
-agenda. A configuração fica em `calendar` no `config.json`:
+Com agendas configuradas aparece o card da agenda na coluna esquerda, entre
+sol e lua e a câmera. Ele mostra sempre o dia de hoje; deslize para ver os
+próximos dias (até 5). Sem tocar por 1 min, volta para hoje. Uma cor por
+agenda; o que não cabe vira "+N eventos". A configuração fica em `calendar` no `config.json`:
 
 ```json
 "calendar": {
@@ -295,8 +308,8 @@ agenda. A configuração fica em `calendar` no `config.json`:
     {"name": "Pessoal", "url": "https://calendar.google.com/calendar/ical/.../private-.../basic.ics"}
   ],
   "apps_script_urls": [],
-  "days": 14,
-  "max_events": 12
+  "days": 5,
+  "max_events": 50
 }
 ```
 
@@ -308,7 +321,7 @@ agenda. A configuração fica em `calendar` no `config.json`:
   empresa), publique `apps-script.gs` em script.google.com com essa conta como
   **Web app** (*Execute as: Me*, *Who has access: Anyone*) e use
   `{"name": "Trabalho", "url": ".../exec?token=SUA_SENHA"}`.
-- `max_events`: 12 cabem no card (6 por coluna).
+- `max_events`: limite total de eventos que o servidor manda (padrão 50).
 
 O servidor baixa as agendas a cada 30 min. Se uma falhar, usa a última versão
 boa dela e as outras continuam aparecendo. Eventos iguais em duas agendas

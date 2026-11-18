@@ -18,8 +18,8 @@
   "calendar": {
     "ics_urls": [],
     "apps_script_urls": [],
-    "days": 14,
-    "max_events": 12
+    "days": 5,
+    "max_events": 50
   },
   "camera": {
     "rtsp_url": "rtsp://USUARIO:SENHA@192.168.1.210:554/stream2",
