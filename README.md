@@ -232,14 +232,16 @@ Notificações (flutuam no canto inferior direito):
 
 | Nível | Quando |
 |---|---|
-| info (azul) | chuva provável nas próximas 14 h (≥ 50%); lembretes sem `level` |
-| warning (amarelo) | chovendo agora ou chuva chegando (previsão de 15 em 15 min); rajadas ≥ 50 km/h |
+| info (azul) | chuva provável nas próximas 14 h (≥ 50%); lembretes sem `level`; compromisso da agenda em até 1 h |
+| warning (amarelo) | chovendo agora ou chuva chegando (previsão de 15 em 15 min); rajadas ≥ 50 km/h; compromisso em até 15 min |
 | danger (vermelho) | rajadas ≥ 70 km/h; previsão sem atualizar há 25 min; lembretes `urgent` |
 
 Toque numa notificação para ver as ações: **15 min / 1 h / 3 h** adiam,
 **OK** dispensa até o fim do dia (volta se o nível subir, ex.: rajadas
 passando de 50 para 70 km/h). Quando o aviso some (parou a chuva) e volta, ele
-aparece de novo. Adiamentos ficam no `localStorage` do iPad. Para ver como
+aparece de novo. A notificação de um compromisso some na hora em que ele começa;
+se for dispensada no azul, volta no amarelo (15 min antes). Compromissos de dia
+todo não notificam. Adiamentos ficam no `localStorage` do iPad. Para ver como
 ficam sem esperar chuva, abra a página com `?avisos=1` (um exemplo de cada nível). Os limites ficam
 no início da seção Avisos do `index.html`.
 

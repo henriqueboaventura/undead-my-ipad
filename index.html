@@ -664,6 +664,24 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
     return out;
   }
 
+  // Compromissos com horário: notificação CAL_BEFORE min antes do início (azul) e amarela
+  // nos últimos CAL_SOON min; some na hora do compromisso. Dispensado no azul, volta no amarelo.
+  var CAL_BEFORE = 60, CAL_SOON = 15;
+
+  function calendarNotifs() {
+    var out = [], t = now().getTime();
+    for (var i = 0; i < agenda.length; i++) {
+      var e = agenda[i];
+      if (!e.time) continue;
+      var mins = (localTime(e.date + 'T' + e.time) - t) / 60000;
+      if (mins <= 0 || mins > CAL_BEFORE) continue;
+      var m = Math.ceil(mins);
+      out.push({ id: 'c:' + e.date + ' ' + e.time + ' ' + e.title, level: m <= CAL_SOON ? 'warning' : 'info',
+        title: e.title, detail: 'Às ' + e.time + ' (em ' + (m < 60 ? m + ' min' : '1 h') + ')' + (e.cal ? '  ·  ' + e.cal : '') });
+    }
+    return out;
+  }
+
   // ---------- Notificações ----------
   // Estado por id, guardado no localStorage (sobrevive ao reload de 6 h):
   //   until: adiada até este instante (ms);  day + lvl: dispensada ("OK") hoje até este nível.
@@ -685,6 +703,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
       if (r) list.push(r);
       if (w) list.push(w);
     }
+    if (agenda) list = list.concat(calendarNotifs());
     var s = staleNotif();
     if (s) list.push(s);
     // ?avisos=1: um exemplo de cada nível (só para ver o visual).
@@ -701,7 +720,9 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
     for (i = 0; i < list.length; i++) present[list[i].id] = true;
     // Só esquece o estado de avisos cuja fonte já carregou (no início ainda não há tempo nem config).
     for (id in nState) {
-      var ready = id === 'stale' || id.substr(0, 5) === 'demo:' || (id.charAt(0) === 'w' ? !!alertCity : cfgLoaded);
+      var src = id.charAt(0);
+      var ready = id === 'stale' || id.substr(0, 5) === 'demo:' ||
+        (src === 'w' ? !!alertCity : src === 'c' ? !!agenda : cfgLoaded);
       if (!present[id] && ready) { delete nState[id]; changed = true; }
     }
     if (changed) saveState();
