@@ -2,7 +2,7 @@
 
 Página única para um iPad mini de 1ª geração (iOS 9.3.5) usado como tela fixa:
 relógio, sol e lua (nascer/pôr e fase), tempo detalhado de Osório (agora,
-gráfico das próximas 14 h), 7 dias alternando entre Osório e Porto Alegre,
+gráfico das próximas 14 h), 7 dias de Osório e Porto Alegre (deslizando),
 agenda (hoje e os próximos dias), a câmera Tapo de casa e notificações (chuva,
 rajadas, lembretes) que dá para adiar.
 
@@ -88,6 +88,7 @@ Preencha:
   (vermelho); `"urgent": true` vale como `"danger"`.
 - `night_hours`: modo noturno (padrão `23:00-06:00`). Nesse horário a tela
   fica preta, só com o relógio apagado; um toque mostra o painel por 1 min.
+  Notificações vermelhas aparecem mesmo assim.
   Deixe `""` para desligar.
 - `cities`: cidades e coordenadas. A cidade com `"detailed": true` é a
   principal: aparece no card de cima, nos avisos e no fundo. Deslizando no card
@@ -238,7 +239,9 @@ Notificações (flutuam no canto inferior direito):
 | warning (amarelo) | chovendo agora ou chuva chegando (previsão de 15 em 15 min); rajadas ≥ 50 km/h; compromisso em até 15 min |
 | danger (vermelho) | rajadas ≥ 70 km/h; previsão sem atualizar há 25 min; lembretes `urgent` |
 
-Toque numa notificação para ver as ações: **15 min / 1 h / 3 h** adiam,
+As azuis ficam 5 min na tela e depois recolhem num contador ("● 2 avisos") no
+card do relógio; tocar no contador reabre por 1 min. Amarelas e vermelhas ficam
+até você agir. Toque numa notificação (⋯) para ver as ações: **15 min / 1 h / 3 h** adiam,
 **OK** dispensa até o fim do dia (volta se o nível subir, ex.: rajadas
 passando de 50 para 70 km/h). Quando o aviso some (parou a chuva) e volta, ele
 aparece de novo. A notificação de um compromisso some na hora em que ele começa;
@@ -304,7 +307,9 @@ na `rtsp_url`.
 Com agendas configuradas aparece o card da agenda na coluna esquerda, entre
 sol e lua e a câmera. Ele mostra sempre o dia de hoje; deslize para ver os
 próximos dias (até 5). Sem tocar por 1 min, volta para hoje. Uma cor por
-agenda; o que não cabe vira "+N eventos". A configuração fica em `calendar` no `config.json`:
+agenda; o que não cabe vira "+N eventos". Em hoje, o compromisso em andamento
+fica verde ("agora"), o próximo azul e os que acabaram apagados. Se sobrar
+espaço, aparecem os compromissos dos dias seguintes. A configuração fica em `calendar` no `config.json`:
 
 ```json
 "calendar": {

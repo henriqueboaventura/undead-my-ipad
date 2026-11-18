@@ -23,7 +23,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 .between { -webkit-justify-content: space-between; justify-content: space-between; }
 .muted { color: #8b949e; }
 /* Cards semitransparentes: o céu do fundo (#skyBg) aparece por trás. */
-.card { background: rgba(13,17,23,0.66); border-radius: 12px; padding: 12px 16px; }
+.card { background: rgba(13,17,23,0.75); border-radius: 12px; padding: 12px 16px; }
 .label { font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #8b949e; }
 .sep { border-top: 1px solid #30363d; }
 
@@ -36,13 +36,16 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 #left > .card:last-child { margin-bottom: 0; }
 
 /* Relógio */
-#clock { padding-top: 8px; padding-bottom: 10px; }
+#clock { padding-top: 8px; padding-bottom: 10px; position: relative; }
+/* Notificações azuis recolhidas (ver INFO_SHOW): toque reabre. */
+#notifPill { position: absolute; right: 10px; top: 10px; display: none; font-size: 14px; padding: 6px 12px;
+  border-radius: 16px; background: rgba(88,166,255,0.25); color: #cfe5ff; }
 /* line-height < 1: os números ocupam ~70% da altura da fonte; tira o vazio acima e abaixo. */
 #timeRow { line-height: 0.82; margin-top: 4px; }
-#time { font-size: 90px; font-weight: 200; letter-spacing: -2px; }
+#time { font-size: 90px; font-weight: 300; letter-spacing: -2px; }
 #secs { font-size: 28px; color: #8b949e; font-weight: 300; margin-left: 4px; }
 #date { font-size: 21px; color: #c9d1d9; margin-top: 6px; font-weight: 300; }
-#status { font-size: 12px; color: #484f58; margin-top: 4px; }
+#status { font-size: 13px; color: #8b949e; margin-top: 4px; }
 
 /* Sol e lua */
 #sky { padding-top: 10px; padding-bottom: 10px; }
@@ -61,6 +64,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 @-webkit-keyframes toastIn { from { opacity: 0; -webkit-transform: translateY(16px); } to { opacity: 1; -webkit-transform: none; } }
 @keyframes toastIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
 .toast .t1 { font-size: 18px; }
+.toast .tHint { float: right; margin-left: 8px; color: #8b949e; font-weight: 400; }
 .toast .t2 { font-size: 14px; color: #8b949e; margin-top: 1px; }
 .toast.warning { border-color: #d29922; }
 .toast.warning .t1 { color: #e3b341; }
@@ -72,6 +76,9 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
   font-size: 15px; border-radius: 8px; background: rgba(255,255,255,0.1); }
 .tBtn:first-child { margin-left: 0; }
 .tBtn.ok { background: rgba(255,255,255,0.22); font-weight: 600; }
+body.nightOn #toasts { z-index: 50; }
+body.nightOn .toast, body.nightOn .toastMore { display: none; }
+body.nightOn .toast.danger { display: block; }
 .toastMore { margin-top: 6px; font-size: 13px; color: #c9d1d9; text-align: right; text-shadow: 0 1px 2px #000; }
 
 /* Osório (detalhado) */
@@ -83,13 +90,14 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 .wi { width: 1em; height: 1em; display: inline-block; vertical-align: middle; }
 .nowIcon { font-size: 80px; line-height: 1; margin-right: 10px; }
 .nowIcon .wi { display: block; }
-.nowTemp { font-size: 70px; font-weight: 200; line-height: 1; }
+.nowTemp { font-size: 70px; font-weight: 300; line-height: 1; }
 .nowDesc { font-size: 18px; margin-bottom: 2px; }
 .nowRange { font-size: 17px; }
 .details { -webkit-flex-wrap: wrap; flex-wrap: wrap; -webkit-align-content: space-between; align-content: space-between; }
 .detail { width: 33.33%; padding: 3px 0 3px 12px; border-left: 1px solid #30363d; margin-bottom: 6px; }
-.detail .muted { font-size: 14px; }
-.detail .v { font-size: 21px; margin-top: 1px; white-space: nowrap; }
+.detail .muted { font-size: 15px; }
+.detail .v { font-size: 26px; margin-top: 2px; white-space: nowrap; }
+.detail .v .note { font-size: 16px; }
 .section { margin-top: 8px; padding-top: 6px; }
 .hours { margin-top: 6px; }
 .hour { -webkit-flex: 1; flex: 1; text-align: center; }
@@ -105,7 +113,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 .dayMax { font-size: 25px; }
 .dayMin { font-size: 19px; color: #8b949e; }
 .dayExtra { font-size: 14px; color: #8b949e; margin-top: 3px; line-height: 1.4; }
-.dayExtra .rain { color: #58a6ff; }
+.dayExtra .rain { color: #79c0ff; }
 
 .chartArea { position: relative; margin-top: 4px; }
 .chartArea .chart { position: absolute; left: 0; top: 0; }
@@ -115,8 +123,8 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 #week { padding: 10px 10px; }
 .weekHead { margin: 0 6px 4px; }
 .weekHead .cityName { font-size: 20px; }
-.dots span { display: inline-block; width: 8px; height: 8px; border-radius: 4px; background: #30363d; margin-left: 6px; }
-.dots span.on { background: #8b949e; }
+.dots span { display: inline-block; width: 10px; height: 10px; border-radius: 5px; background: rgba(255,255,255,0.22); margin-left: 7px; }
+.dots span.on { background: #e6edf3; }
 #week .day { padding: 4px 0; }
 #week .dayIcon { font-size: 30px; }
 /* Agenda (card da esquerda): um dia por vez, deslizando. */
@@ -129,6 +137,13 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 .agEv { font-size: 17px; line-height: 21px; margin-top: 8px; padding-left: 8px; border-left: 3px solid #58a6ff;
   max-height: 42px; overflow: hidden; word-wrap: break-word; }
 .agEv b { font-weight: 600; color: #c9d1d9; }
+.agEv.past { opacity: 0.45; }
+.agEv.now, .agEv.next { padding: 3px 6px 3px 8px; border-radius: 0 6px 6px 0; max-height: 48px; }
+.agEv.now { background: rgba(63,185,80,0.2); }
+.agEv.next { background: rgba(88,166,255,0.15); }
+.agEv i { font-style: normal; font-size: 13px; color: #8b949e; margin-left: 4px; }
+.agSub { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #8b949e; margin-top: 12px; }
+.agEv.later { font-size: 15px; line-height: 19px; max-height: 38px; margin-top: 6px; }
 .agFree { font-size: 16px; color: #8b949e; margin-top: 10px; }
 .agMore { font-size: 14px; color: #8b949e; margin-top: 6px; }
 
@@ -138,7 +153,6 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 #left.hasAgenda #cam { -webkit-flex: none; flex: none; height: 222px; } /* = #bottom */
 #cam { min-height: 191px; padding: 0; overflow: hidden; position: relative; display: none; background: #000; }
 #cam img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
-#cam .camLabel { position: absolute; left: 8px; bottom: 6px; font-size: 12px; color: #fff; text-shadow: 0 1px 2px #000; }
 #camOff { display: none; position: absolute; left: 0; right: 0; top: 50%; margin-top: -10px;
   text-align: center; font-size: 16px; color: #8b949e; }
 /* #left.hasAgenda repetido: precisa vencer a altura fixa de 222px. */
@@ -149,7 +163,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 /* Modo noturno: só o relógio, apagado, sobre preto. Um toque mostra o painel por 1 min. */
 #night { position: fixed; left: 0; top: 0; right: 0; bottom: 0; z-index: 40; background: #000;
   text-align: center; display: none; }
-#nightTime { font-size: 170px; font-weight: 200; letter-spacing: -4px; color: #3b4148; padding-top: 230px; line-height: 1; }
+#nightTime { font-size: 170px; font-weight: 300; letter-spacing: -4px; color: #3b4148; padding-top: 230px; line-height: 1; }
 #nightDate { font-size: 24px; font-weight: 300; color: #2b3036; margin-top: 14px; }
 
 #fsTip { position: fixed; left: 50%; top: 12px; width: 560px; margin-left: -280px; z-index: 20;
@@ -172,6 +186,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
       <div id="timeRow"><span id="time">--:--</span><span id="secs">--</span></div>
       <div id="date"></div>
       <div id="status"></div>
+      <div id="notifPill"></div>
     </div>
     <div id="sky" class="card col">
       <div class="label">Sol e Lua</div>
@@ -190,7 +205,6 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
     <div id="cam" class="card grow">
       <img id="camImg" alt="">
       <div id="camOff"></div>
-      <div class="camLabel">Câmera</div>
     </div>
   </div>
 
@@ -302,6 +316,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
   function tickNight() {
     var on = !!nightHours && inHours(nightHours) && Date.now() > nightWakeUntil;
     $('night').style.display = on ? 'block' : 'none';
+    document.body.className = on ? 'nightOn' : '';
     if (on) {
       $('nightTime').textContent = $('time').textContent;
       $('nightDate').textContent = $('date').textContent;
@@ -467,10 +482,12 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
     return [4, 'extremo'];
   }
 
-  function detail(parent, label, value, cls) {
+  // note: texto menor depois do valor (ex.: "moderado" no UV), para caber na coluna.
+  function detail(parent, label, value, cls, note) {
     var d = add(parent, el('div', 'detail'));
     add(d, el('div', 'muted', label));
-    add(d, el('div', 'v' + (cls ? ' ' + cls : ''), value));
+    var v = add(d, el('div', 'v' + (cls ? ' ' + cls : ''), value));
+    if (note) add(v, el('span', 'note', ' ' + note));
   }
 
   function renderDays(parent, daily, extended) {
@@ -512,13 +529,10 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
     var uv = uvLevel(cur.uv_index);
     detail(det, 'Sensação', Math.round(cur.apparent_temperature) + '°');
     detail(det, 'Umidade', cur.relative_humidity_2m + '%');
-    detail(det, 'Ponto de orvalho', Math.round(cur.dew_point_2m) + '°');
     detail(det, 'Vento', Math.round(cur.wind_speed_10m) + ' km/h ' + windDir(cur.wind_direction_10m));
     detail(det, 'Rajadas', Math.round(cur.wind_gusts_10m) + ' km/h');
-    detail(det, 'Pressão', Math.round(cur.pressure_msl) + ' hPa');
-    detail(det, 'Índice UV', Math.round(cur.uv_index) + ' ' + uv[1], 'uv' + uv[0]);
+    detail(det, 'Índice UV', Math.round(cur.uv_index), 'uv' + uv[0], uv[1]);
     detail(det, 'Nuvens', cur.cloud_cover + '%');
-    detail(det, 'Visibilidade', (cur.visibility >= 10000 ? '10+' : (cur.visibility / 1000).toFixed(1)) + ' km');
 
     var hs = add(box, el('div', 'section sep col grow'));
     var lab = add(hs, el('div', 'row between center'));
@@ -576,7 +590,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
       var bh = (probs[i] || 0) / 100 * (base - top);
       ctx.fillRect(x(i) - col * 0.3, base - bh, col * 0.6, bh);
     }
-    ctx.fillStyle = '#58a6ff'; ctx.font = '14px "Helvetica Neue", Helvetica, Arial, sans-serif';
+    ctx.fillStyle = '#79c0ff'; ctx.font = '14px "Helvetica Neue", Helvetica, Arial, sans-serif';
     ctx.textAlign = 'center';
     for (i = 0; i < n; i++) if (probs[i] >= 10) ctx.fillText(probs[i] + '%', x(i), height - 2);
     ctx.strokeStyle = '#f0b72f'; ctx.lineWidth = 2; ctx.lineJoin = 'round';
@@ -706,7 +720,8 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
   // aviso some (parou de chover, virou o dia do lembrete) o estado é apagado: se voltar, aparece.
   var SNOOZE = [[15, '15 min'], [60, '1 h'], [180, '3 h']];
   var MAX_TOASTS = 4;
-  var nState = {}, openToast = null, shownToasts = {}, lastToastSig = null;
+  var INFO_SHOW = 5, PEEK = 60; // minutos visível; segundos reabertas pelo contador
+  var nState = {}, openToast = null, shownToasts = {}, lastToastSig = null, firstSeen = {}, peekUntil = 0;
   try { nState = JSON.parse(localStorage.getItem('notifState') || '{}') || {}; } catch (e) {}
   function saveState() {
     try { localStorage.setItem('notifState', JSON.stringify(nState)); } catch (e) {}
@@ -753,7 +768,21 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
     }
     show.sort(function (a, b) { return LEVELS[b.level] - LEVELS[a.level]; });
 
-    var sig = openToast + '|' + JSON.stringify(show);
+    // Azuis aparecem por INFO_SHOW min e depois recolhem no contador do relógio.
+    var visible = [], folded = 0, fresh = {};
+    for (i = 0; i < show.length; i++) {
+      n = show[i];
+      fresh[n.id] = firstSeen[n.id] || t;
+      if (n.level !== 'info' || openToast === n.id || t < peekUntil || t - fresh[n.id] < INFO_SHOW * 60000) visible.push(n);
+      else folded++;
+    }
+    firstSeen = fresh;
+    show = visible;
+    var pill = $('notifPill');
+    pill.style.display = folded ? 'block' : 'none';
+    pill.textContent = '● ' + folded + ' aviso' + (folded > 1 ? 's' : '');
+
+    var sig = openToast + '|' + folded + '|' + JSON.stringify(show);
     if (sig === lastToastSig) return;
     lastToastSig = sig;
 
@@ -764,10 +793,14 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
     shownToasts = seen;
   }
 
+  $('notifPill').onclick = function () { peekUntil = Date.now() + PEEK * 1000; renderToasts(); };
+
   function addToast(box, n, seen) {
     var tEl = add(box, el('div', 'toast ' + n.level + (shownToasts[n.id] ? ' old' : '')));
     seen[n.id] = true;
-    add(tEl, el('div', 't1', n.title));
+    var t1 = add(tEl, el('div', 't1'));
+    if (openToast !== n.id) add(t1, el('span', 'tHint', '⋯'));
+    t1.appendChild(document.createTextNode(n.title));
     if (n.detail) add(tEl, el('div', 't2', n.detail));
     tEl.onclick = function () { openToast = openToast === n.id ? null : n.id; renderToasts(); };
     if (openToast !== n.id) return;
@@ -797,8 +830,9 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
   }
 
 
-  // Card de baixo: 7 dias de cada cidade, alternando a cada WEEK_ROTATE segundos.
-  var WEEK_ROTATE = 10;
+  // Card de baixo: 7 dias de cada cidade. Só troca deslizando; volta para a primeira
+  // depois de WEEK_BACK segundos sem toque (como o card de cima e a agenda).
+  var WEEK_BACK = 60;
   var weekCities = [], weekIndex = 0;
 
   function weekPages() { return weekCities.length; }
@@ -822,15 +856,12 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
   }
 
   var weekTimer = null;
-  function showWeekPage(step, delay) {
-    if (weekPages() >= 2) {
-      weekIndex = (weekIndex + step + weekPages()) % weekPages();
-      renderWeek();
-    }
+  function showWeekPage(step) {
+    var i = Math.max(0, Math.min(weekPages() - 1, weekIndex + step));
+    if (i !== weekIndex) { weekIndex = i; renderWeek(); }
     clearTimeout(weekTimer);
-    weekTimer = setTimeout(function () { showWeekPage(1, WEEK_ROTATE); }, delay * 1000);
+    weekTimer = setTimeout(function () { weekIndex = 0; renderWeek(); }, WEEK_BACK * 1000);
   }
-  weekTimer = setTimeout(function () { showWeekPage(1, WEEK_ROTATE); }, WEEK_ROTATE * 1000);
 
   // Deslizar: dedo para a esquerda = fn(1) (próximo), para a direita = fn(-1).
   function onSwipe(elm, fn) {
@@ -845,9 +876,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
     });
   }
 
-  // Depois de um deslize no card de baixo a troca automática espera WEEK_SWIPE_PAUSE segundos.
-  var WEEK_SWIPE_PAUSE = 30;
-  onSwipe($('week'), function (step) { showWeekPage(step, WEEK_SWIPE_PAUSE); });
+  onSwipe($('week'), showWeekPage);
 
   onSwipe($('main'), function (step) {
     if (mainCities.length < 2) return;
@@ -869,7 +898,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
     var box = $('agenda'), t = now();
     t.setUTCDate(t.getUTCDate() + agendaDay);
     var iso = t.getUTCFullYear() + '-' + pad(t.getUTCMonth() + 1) + '-' + pad(t.getUTCDate());
-    agendaShown = todayISO();
+    agendaShown = agendaStamp();
     box.innerHTML = '';
     var top = add(box, el('div', 'agTop row between center'));
     var title = add(top, el('div', 'agTitle', agendaDay === 0 ? 'Hoje' : agendaDay === 1 ? 'Amanhã'
@@ -878,18 +907,54 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
     var dots = add(top, el('div', 'dots'));
     for (var d = 0; d < AGENDA_DAYS; d++) add(dots, el('span', d === agendaDay ? 'on' : ''));
 
-    var list = add(box, el('div', 'agList grow')), n = 0;
+    // Hoje: compromisso em andamento (verde, "agora"), o próximo (azul) e os que já
+    // acabaram (apagados). Sem horário de fim (Apps Script), conta 1 h de duração.
+    var list = add(box, el('div', 'agList grow')), n = 0, t0 = now().getTime(), nextDone = false;
     for (var i = 0; i < agenda.length; i++) {
       var e = agenda[i];
       if (e.date !== iso) continue;
       n++;
-      var ev = add(list, el('div', 'agEv'));
-      ev.style.borderLeftColor = CAL_COLORS[Math.max(0, calNames.indexOf(e.cal)) % CAL_COLORS.length];
-      if (e.time) add(ev, el('b', '', e.time));
-      ev.appendChild(document.createTextNode((e.time ? ' ' : '') + e.title));
+      var cls = '';
+      if (agendaDay === 0 && e.time) {
+        var start = localTime(e.date + 'T' + e.time);
+        var end = e.end ? localTime(e.date + 'T' + e.end) : start + 3600000;
+        if (end <= t0) cls = ' past';
+        else if (start <= t0) cls = ' now';
+        else if (!nextDone) { cls = ' next'; nextDone = true; }
+      }
+      var ev = agendaItem(list, e, cls, e.time);
+      if (cls === ' now') add(ev, el('i', '', 'agora'));
     }
     if (!n) add(list, el('div', 'agFree', 'Nada na agenda'));
-    fitAgenda(list);
+    // Coube tudo: o espaço que sobra mostra os compromissos dos dias seguintes.
+    if (!fitAgenda(list)) fillLater(list, iso);
+  }
+
+  function agendaItem(parent, e, cls, label) {
+    var ev = add(parent, el('div', 'agEv' + cls));
+    ev.style.borderLeftColor = CAL_COLORS[Math.max(0, calNames.indexOf(e.cal)) % CAL_COLORS.length];
+    if (label) add(ev, el('b', '', label));
+    ev.appendChild(document.createTextNode((label ? ' ' : '') + e.title));
+    return ev;
+  }
+
+  function overflows(box) { return box.scrollHeight > box.clientHeight + 1; }
+
+  function fillLater(list, iso) {
+    var sub = null, t = now();
+    t.setUTCDate(t.getUTCDate() + 1);
+    var tomorrow = t.getUTCFullYear() + '-' + pad(t.getUTCMonth() + 1) + '-' + pad(t.getUTCDate());
+    for (var i = 0; i < agenda.length; i++) {
+      var e = agenda[i];
+      if (e.date <= iso) continue;
+      if (!sub) {
+        sub = add(list, el('div', 'agSub', 'Próximos dias'));
+        if (overflows(list)) { list.removeChild(sub); return; }
+      }
+      var day = e.date === tomorrow ? 'Amanhã' : DIAS[ymd(e.date).getDay()] + ' ' + e.date.substr(8, 2);
+      var ev = agendaItem(list, e, ' later', day + (e.time ? ' ' + e.time : ''));
+      if (overflows(list)) { list.removeChild(ev); return; }
+    }
   }
 
   // Esconde eventos do fim até caber, deixando uma linha "+N".
@@ -901,6 +966,7 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
       if (!more) more = add(list, el('div', 'agMore'));
       more.textContent = '+' + hidden + ' evento' + (hidden > 1 ? 's' : '');
     }
+    return hidden;
   }
 
   onSwipe($('agenda'), function (step) {
@@ -910,9 +976,11 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
     agendaTimer = setTimeout(function () { agendaDay = 0; renderAgenda(); }, AGENDA_BACK * 1000);
   });
 
-  // Chamado a cada segundo pelo relógio: virou o dia, redesenha a partir do novo Hoje.
+  // Chamado a cada segundo pelo relógio: redesenha a cada minuto (agora/próximo) e,
+  // ao virar o dia, a partir do novo Hoje.
+  function agendaStamp() { return todayISO() + ' ' + now().getUTCHours() + ':' + now().getUTCMinutes(); }
   function tickAgenda() {
-    if (agenda && agendaShown !== todayISO()) renderAgenda();
+    if (agenda && agendaShown !== agendaStamp()) renderAgenda();
   }
 
   function updateAgenda() {

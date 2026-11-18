@@ -342,13 +342,14 @@ def build_agenda(texts, days):
                 if e <= now or s.date() > win_end:
                     continue
                 day = max(s.date(), today)
-                items.append((day, s.strftime("%H:%M") if s.date() == day else "", title))
+                items.append((day, s.strftime("%H:%M") if s.date() == day else "", title,
+                              e.strftime("%H:%M") if e.date() == day else ""))
             else:
                 if occ + dur <= today or occ > win_end:
                     continue
-                items.append((max(occ, today), "", title))
-    return [{"date": d.isoformat(), "time": t or None, "title": title}
-            for d, t, title in items]
+                items.append((max(occ, today), "", title, ""))
+    return [{"date": d.isoformat(), "time": t or None, "end": end or None, "title": title}
+            for d, t, title, end in items]
 
 
 def calendar_sources(cal, key):
