@@ -248,12 +248,22 @@ body.nightOn .toast.danger { display: block; }
   }
   function add(parent, child) { parent.appendChild(child); return child; }
 
+  // Vigia próprio além do xhr.timeout: depois que o iPad dorme, uma requisição em andamento
+  // às vezes nunca termina (nem com erro) e a cadeia de atualizações morria ali.
   function getJSON(url, ok, fail) {
-    var xhr = new XMLHttpRequest();
+    var xhr = new XMLHttpRequest(), done = false;
+    var guard = setTimeout(function () {
+      if (done) return;
+      done = true;
+      try { xhr.abort(); } catch (e) {}
+      fail(new Error('HTTP 0'));
+    }, 35000);
     xhr.open('GET', url + (url.indexOf('?') < 0 ? '?' : '&') + '_=' + Date.now(), true);
     xhr.timeout = 30000;
     xhr.onreadystatechange = function () {
-      if (xhr.readyState !== 4) return;
+      if (xhr.readyState !== 4 || done) return;
+      done = true;
+      clearTimeout(guard);
       if (xhr.status === 200) {
         var data;
         try { data = JSON.parse(xhr.responseText); } catch (e) { return fail(e); }
@@ -263,6 +273,19 @@ body.nightOn .toast.danger { display: block; }
       }
     };
     xhr.send();
+  }
+
+  // Laço de atualização reiniciável: run(next) faz o trabalho e chama next(ms) para agendar a
+  // próxima. Chamar o laço de novo (ex.: ao acordar) cancela o anterior; callbacks atrasados
+  // da rodada velha são ignorados, então nunca ficam dois laços rodando.
+  function makeLoop(run) {
+    var seq = 0, timer = null;
+    function start() {
+      clearTimeout(timer);
+      var my = ++seq;
+      run(function (delay) { if (my === seq) timer = setTimeout(start, delay); });
+    }
+    return start;
   }
 
   // Não usar new Date("2026-10-29T06:12"): o Safari 9 interpreta como UTC.
@@ -987,15 +1010,15 @@ body.nightOn .toast.danger { display: block; }
     if (agenda && agendaShown !== agendaStamp()) renderAgenda();
   }
 
-  function updateAgenda() {
+  var updateAgenda = makeLoop(function (next) {
     getJSON('/api/calendar', function (list) {
       agenda = list;
       renderAgenda();
-      setTimeout(updateAgenda, 30 * 60 * 1000);
-    }, function () { setTimeout(updateAgenda, 5 * 60 * 1000); });
-  }
+      next(30 * 60 * 1000);
+    }, function () { next(60 * 1000); });
+  });
 
-  function updateWeather() {
+  var updateWeather = makeLoop(function (next) {
     getJSON('/api/weather', function (data) {
       try {
         var others = [];
@@ -1013,21 +1036,20 @@ body.nightOn .toast.danger { display: block; }
       } catch (e) {
         // Ex.: servidor antigo ainda rodando com formato de dados diferente.
         $('status').textContent = 'Erro ao montar o tempo: ' + e.message + ' (reinicie o server.py)';
-        setTimeout(updateWeather, 60 * 1000);
-        return;
+        return next(60 * 1000);
       }
       var d = now();
       lastWeatherOk = Date.now();
       lastWeatherLabel = pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes());
       $('status').textContent = 'Atualizado às ' + lastWeatherLabel;
       renderToasts();
-      setTimeout(updateWeather, 10 * 60 * 1000);
+      next(10 * 60 * 1000);
     }, function (err) {
       lastWeatherErr = err.message;
       $('status').textContent = 'Erro ao buscar o tempo (' + err.message + ')';
-      setTimeout(updateWeather, 60 * 1000);
+      next(30 * 1000);
     });
-  }
+  });
 
   // ---------- Fundo (céu) ----------
   // Desenhado uma vez por minuto, sem animação (leve para o iPad mini 1).
@@ -1202,29 +1224,53 @@ body.nightOn .toast.danger { display: block; }
     return !hours || inHours(hours);
   }
 
+  var updateCamera = null;
   function startCamera(refreshSeconds, hours) {
     var cam = $('cam'), img = $('camImg'), off = $('camOff');
     cam.style.display = 'block';
-    function load() {
+    // Se a imagem nunca carregar nem falhar (iPad dormiu no meio), o vigia segue o laço.
+    updateCamera = makeLoop(function (next) {
       if (!cameraActive(hours)) {
         cam.className = 'card grow';
         img.style.display = 'none';
         off.style.display = 'block';
         off.textContent = 'Câmera desligada até ' + hours.split('-')[0].replace(/^0/, '');
-        return setTimeout(load, 60 * 1000);
+        return next(60 * 1000);
       }
+      var done = false;
+      function finish(delay) { if (!done) { done = true; clearTimeout(guard); next(delay); } }
+      var guard = setTimeout(function () { finish(0); }, 40000);
+      img.onload = function () { finish(refreshSeconds * 1000); };
+      img.onerror = function () { finish(15000); };
       off.style.display = 'none';
       img.style.display = 'block';
       img.src = '/api/camera.jpg?_=' + Date.now();
-    }
-    function next(delay) { setTimeout(load, delay); }
-    img.onload = function () { next(refreshSeconds * 1000); };
-    img.onerror = function () { next(15000); };
+    });
     cam.onclick = function () {
       cam.className = cam.className.indexOf('full') >= 0 ? 'card grow' : 'card grow full';
     };
-    next(0);
+    updateCamera();
   }
+
+  // ---------- Acordar ----------
+  // Com a tela apagada o iOS congela a página. Ao voltar (o relógio pulou ou a página
+  // ficou visível de novo), reinicia todas as atualizações em vez de esperar os timers velhos.
+  var lastTick = Date.now(), lastWake = 0;
+  function onWake() {
+    if (Date.now() - lastWake < 5000) return;
+    lastWake = Date.now();
+    syncClock();
+    updateWeather();
+    if ($('left').className.indexOf('hasAgenda') >= 0) updateAgenda();
+    if (updateCamera) updateCamera();
+  }
+  setInterval(function () {
+    if (Date.now() - lastTick > 15000) onWake();
+    lastTick = Date.now();
+  }, 1000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) onWake(); });
+  window.addEventListener('pageshow', function (e) { if (e.persisted) onWake(); });
+  window.addEventListener('focus', onWake);
 
   // ---------- Início ----------
   tickClock();
@@ -1262,7 +1308,13 @@ body.nightOn .toast.danger { display: block; }
   }
 
   // Recarrega a página a cada 6h para evitar acúmulo de memória no Safari antigo.
-  setTimeout(function () { location.reload(); }, 6 * 60 * 60 * 1000);
+  // Só recarrega se o servidor responder: recarregar sem rede (ex.: logo depois de acordar)
+  // deixaria o app da Tela de Início numa página de erro.
+  function safeReload() {
+    getJSON('/api/time', function () { location.reload(); },
+      function () { setTimeout(safeReload, 60 * 1000); });
+  }
+  setTimeout(safeReload, 6 * 60 * 60 * 1000);
 })();
 </script>
 </body>
