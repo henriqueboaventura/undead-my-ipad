@@ -47,6 +47,63 @@ html, body { height: 100%; background: #0d1117; color: #e6edf3; overflow: hidden
 #date { font-size: 21px; color: #c9d1d9; margin-top: 6px; font-weight: 400; }
 #status { font-size: 13px; color: #8b949e; margin-top: 4px; }
 
+/* Estilos de relógio (clock_style no config): flip e digital substituem #timeRow. */
+#clockFace, #nightFace { display: none; }
+html.faceOn #timeRow, html.faceOn #nightTime { display: none; }
+html.faceOn #clockFace { display: block; margin: 6px 0 4px; }
+html.faceOn #nightFace { display: inline-block; margin-top: 190px; opacity: 0.32; }
+/* Flip: cartões pretos com número branco; ao mudar, a metade de cima vira para baixo. */
+.flipFace { display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; }
+/* Um cartão por algarismo, em pares (.fgroup): só vira o algarismo que mudou. */
+.fgroup { display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; width: 144px; }
+.fcard { position: relative; width: 70px; height: 112px; -webkit-perspective: 500px; perspective: 500px;
+  border-radius: 10px; box-shadow: 0 3px 0 #0b0b0b, 0 6px 0 #050505; }
+.fHalf { position: absolute; left: 0; right: 0; height: 50%; overflow: hidden; background: #171717; }
+.fUpper, .fFlapT { top: 0; border-radius: 10px 10px 0 0; }
+.fLower, .fFlapB { bottom: 0; border-radius: 0 0 10px 10px; background: #1b1b1b; }
+.fNum { position: absolute; left: 0; right: 0; top: 0; height: 200%; text-align: center; color: #f4f4f4;
+  font-size: 100px; line-height: 112px; font-weight: 700; }
+.fLower .fNum, .fFlapB .fNum { top: -100%; }
+.fcard:after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 2px; margin-top: -1px;
+  background: #000; z-index: 5; }
+.fFlapT, .fFlapB { display: none; z-index: 3; -webkit-backface-visibility: hidden; backface-visibility: hidden; }
+.fFlapT { -webkit-transform-origin: 50% 100%; transform-origin: 50% 100%; }
+.fFlapB { -webkit-transform-origin: 50% 0; transform-origin: 50% 0;
+  -webkit-transform: rotateX(90deg); transform: rotateX(90deg); }
+.flipping .fFlapT { display: block; -webkit-animation: flipT 0.3s ease-in forwards; animation: flipT 0.3s ease-in forwards; }
+.flipping .fFlapB { display: block; -webkit-animation: flipB 0.3s ease-out 0.3s forwards; animation: flipB 0.3s ease-out 0.3s forwards; }
+@-webkit-keyframes flipT { from { -webkit-transform: rotateX(0); } to { -webkit-transform: rotateX(-90deg); } }
+@keyframes flipT { from { transform: rotateX(0); } to { transform: rotateX(-90deg); } }
+@-webkit-keyframes flipB { from { -webkit-transform: rotateX(90deg); } to { -webkit-transform: rotateX(0); } }
+@keyframes flipB { from { transform: rotateX(90deg); } to { transform: rotateX(0); } }
+#nightFace .flipFace { width: 640px; }
+#nightFace .fgroup { width: 308px; }
+#nightFace .fcard { width: 150px; height: 230px; border-radius: 18px; }
+#nightFace .fUpper, #nightFace .fFlapT { border-radius: 18px 18px 0 0; }
+#nightFace .fLower, #nightFace .fFlapB { border-radius: 0 0 18px 18px; }
+#nightFace .fNum { font-size: 205px; line-height: 230px; }
+#nightFace .fcard:after { height: 4px; margin-top: -2px; }
+/* Digital: 7 segmentos vermelhos (SVG), segmentos apagados levemente visíveis. */
+.digiFace { background: #050505; border: 2px solid #2d2f33; border-radius: 10px; padding: 12px 14px; }
+.digiFace svg { display: block; width: 276px; height: 93px; }
+#nightFace .digiFace { border-radius: 16px; padding: 30px 36px; border-color: #1a1b1e; }
+#nightFace .digiFace svg { width: 620px; height: 210px; }
+/* Toque no relógio: o mesmo estilo, grande e com segundos, em tela cheia. */
+#bigClock { position: fixed; left: 0; top: 0; right: 0; bottom: 0; z-index: 45; background: #000;
+  text-align: center; display: none; }
+#bigFace { display: inline-block; margin-top: 200px; }
+#bigClock .digiFace { border-radius: 18px; padding: 34px 38px; }
+#bigClock .digiFace svg { width: 860px; height: 184px; }
+#bigFace .flipFace { width: 930px; }
+#bigFace .fgroup { width: 298px; }
+#bigFace .fcard { width: 145px; height: 230px; border-radius: 18px; }
+#bigFace .fUpper, #bigFace .fFlapT { border-radius: 18px 18px 0 0; }
+#bigFace .fLower, #bigFace .fFlapB { border-radius: 0 0 18px 18px; }
+#bigFace .fNum { font-size: 195px; line-height: 230px; }
+#bigFace .fcard:after { height: 4px; margin-top: -2px; }
+.bigClassic { font-size: 190px; font-weight: 400; letter-spacing: -4px; line-height: 1; color: #e6edf3; margin-top: 20px; }
+#bigDate { font-size: 28px; color: #8b949e; margin-top: 26px; }
+
 /* Sol e lua */
 #sky { padding-top: 10px; padding-bottom: 10px; }
 .sunRow { margin: 6px 0 3px; font-size: 20px; }
@@ -184,6 +241,7 @@ body.nightOn .toast.danger { display: block; }
   <div id="left" class="col">
     <div id="clock" class="card col">
       <div id="timeRow"><span id="time">--:--</span><span id="secs">--</span></div>
+      <div id="clockFace"></div>
       <div id="date"></div>
       <div id="status"></div>
       <div id="notifPill"></div>
@@ -216,7 +274,8 @@ body.nightOn .toast.danger { display: block; }
   </div>
 </div>
 
-<div id="night"><div id="nightTime"></div><div id="nightDate"></div></div>
+<div id="bigClock"><div id="bigFace"></div><div id="bigDate"></div></div>
+<div id="night"><div id="nightTime"></div><div id="nightFace"></div><div id="nightDate"></div></div>
 <div id="toasts"></div>
 
 <div id="fsTip">
@@ -302,14 +361,15 @@ body.nightOn .toast.danger { display: block; }
   function now() { return new Date(Date.now() + clockShift); }
   // Instante real (UTC de verdade), corrigido pelo relógio do servidor: para cálculos absolutos (lua).
   function nowAbs() { return new Date(Date.now() + clockShift - tzShift); }
-  function syncClock() {
+  // tag vai na URL só para aparecer no log do servidor (ex.: "wake=3600" = acordou após 1 h).
+  function syncClock(tag) {
     var sent = Date.now();
-    getJSON('/api/time', function (t) {
+    getJSON('/api/time' + (tag ? '?' + tag : ''), function (t) {
       tzShift = t.offset * 60000;
       clockShift = t.now + (Date.now() - sent) / 2 - Date.now() + tzShift;
       updateMoon();
       tickClock();
-    }, function () {});
+    }, function () { if (waking()) setTimeout(syncClock, 5000); });
   }
 
   function todayISO() {
@@ -319,8 +379,140 @@ body.nightOn .toast.danger { display: block; }
   function ddmm(d) { return pad(d.getDate()) + '/' + pad(d.getMonth() + 1); }
 
   // ---------- Relógio ----------
+  // Estilos: "classico" (texto), "flip" (cartões) e "digital" (7 segmentos). Cada mostrador é
+  // uma função (hh, mm) chamada a cada segundo; só mexe no DOM quando o minuto muda.
+  var faces = [];
+
+  function setClockStyle(style) {
+    if (style !== 'flip' && style !== 'digital') style = 'classico';
+    try { localStorage.setItem('clockStyle', style); } catch (e) {}  // sem piscar o clássico ao abrir
+    faces = [];
+    var boxes = [$('clockFace'), $('nightFace')];
+    for (var i = 0; i < boxes.length; i++) {
+      boxes[i].innerHTML = '';
+      if (style === 'flip') faces.push(makeFlip(boxes[i]));
+      else if (style === 'digital') faces.push(makeDigital(boxes[i]));
+    }
+    // Relógio grande (toque): mesmo estilo, com segundos.
+    $('bigFace').innerHTML = '';
+    bigFace = style === 'flip' ? makeFlip($('bigFace'), true)
+      : style === 'digital' ? makeDigital($('bigFace'), true) : makeClassic($('bigFace'));
+    var cls = document.documentElement.className.replace(/ ?faceOn/, '');
+    if (faces.length) cls += ' faceOn';
+    document.documentElement.className = cls;
+    tickClock();
+  }
+
+  function makeFlip(box, withSecs) {
+    var face = add(box, el('div', 'flipFace'));
+    function pair() {
+      var g = add(face, el('div', 'fgroup')), d1 = makeFlipCard(g), d2 = makeFlipCard(g);
+      return function (v) { d1(v.charAt(0)); d2(v.charAt(1)); };
+    }
+    var a = pair(), b = pair(), c = withSecs ? pair() : null;
+    return function (hh, mm, ss) { a(hh); b(mm); if (c) c(ss); };
+  }
+
+  function makeClassic(box) {
+    var t = add(box, el('div', 'bigClassic'));
+    return function (hh, mm, ss) { t.textContent = hh + ':' + mm + ':' + ss; };
+  }
+
+  // Quatro metades: de cima (novo), de baixo (velho até o fim), e as duas abas que giram.
+  function makeFlipCard(parent) {
+    var card = add(parent, el('div', 'fcard'));
+    function half(cls) { var h = add(card, el('div', 'fHalf ' + cls)); return add(h, el('div', 'fNum')); }
+    var upper = half('fUpper'), lower = half('fLower'), flapT = half('fFlapT'), flapB = half('fFlapB');
+    var cur = null, timer = null;
+    return function (v) {
+      if (v === cur) return;
+      var old = cur;
+      cur = v;
+      upper.textContent = v;
+      clearTimeout(timer);
+      if (old === null) { lower.textContent = v; return; }
+      lower.textContent = old; flapT.textContent = old; flapB.textContent = v;
+      card.className = 'fcard';
+      void card.offsetWidth; // reinicia a animação
+      card.className = 'fcard flipping';
+      timer = setTimeout(function () { lower.textContent = v; card.className = 'fcard'; }, 650);
+    };
+  }
+
+  // Segmentos a b c d e f g de cada algarismo.
+  var SEGS = ['abcdef', 'bc', 'abged', 'abgcd', 'fgbc', 'afgcd', 'afgedc', 'abc', 'abcdefg', 'abcdfg'];
+  var SEG_ON = '#ff3b2f', SEG_OFF = '#1e0806';
+
+  // Algarismo de 50x90 em x; segmentos hexagonais de espessura 9.
+  function digitSvg(x, n) {
+    var W = 50, H = 90, T = 9, g = 1.5, h2 = T / 2, out = '';
+    function hseg(yc) {
+      var x0 = x + h2 + g, x1 = x + W - h2 - g;
+      return [x0, yc, x0 + h2, yc - h2, x1 - h2, yc - h2, x1, yc, x1 - h2, yc + h2, x0 + h2, yc + h2];
+    }
+    function vseg(xc, y0, y1) {
+      return [xc, y0, xc + h2, y0 + h2, xc + h2, y1 - h2, xc, y1, xc - h2, y1 - h2, xc - h2, y0 + h2];
+    }
+    var segs = {
+      a: hseg(h2), g: hseg(H / 2), d: hseg(H - h2),
+      f: vseg(x + h2, h2 + g, H / 2 - g), b: vseg(x + W - h2, h2 + g, H / 2 - g),
+      e: vseg(x + h2, H / 2 + g, H - h2 - g), c: vseg(x + W - h2, H / 2 + g, H - h2 - g)
+    };
+    for (var k in segs) {
+      out += '<polygon points="' + segs[k].join(',') + '" fill="' +
+        (SEGS[n].indexOf(k) >= 0 ? SEG_ON : SEG_OFF) + '"/>';
+    }
+    return out;
+  }
+
+  // Avanço: algarismo 62 (50 + 12 de espaço), dois pontos 30. Os dois pontos piscam:
+  // acesos nos segundos pares, apagados (cor de segmento desligado) nos ímpares.
+  function makeDigital(box, withSecs) {
+    var face = add(box, el('div', 'digiFace')), shown = null, colons = [];
+    return function (hh, mm, ss) {
+      var text = hh + ':' + mm + (withSecs ? ':' + ss : '');
+      if (text !== shown) {
+        shown = text;
+        var x = 0, svg = '';
+        for (var i = 0; i < text.length; i++) {
+          var ch = text.charAt(i);
+          if (ch === ':') {
+            svg += '<circle cx="' + (x + 9) + '" cy="28" r="6"/><circle cx="' + (x + 9) + '" cy="62" r="6"/>';
+            x += 30;
+          } else {
+            svg += digitSvg(x, +ch);
+            x += 62;
+          }
+        }
+        face.innerHTML = '<svg viewBox="0 0 ' + (x - 12) + ' 90" xmlns="http://www.w3.org/2000/svg">' + svg + '</svg>';
+        colons = face.getElementsByTagName('circle');
+      }
+      var lit = +ss % 2 === 0 ? SEG_ON : SEG_OFF;
+      for (var j = 0; j < colons.length; j++) colons[j].setAttribute('fill', lit);
+    };
+  }
+
+  // Toque no card do relógio: digital grande com segundos. Outro toque (ou BIG_SHOW s) fecha.
+  var BIG_SHOW = 60;
+  var bigFace = null, bigOpen = false, bigTimer = null;  // bigFace: criado por setClockStyle
+  function showBig(open) {
+    bigOpen = open;
+    $('bigClock').style.display = open ? 'block' : 'none';
+    clearTimeout(bigTimer);
+    if (open) bigTimer = setTimeout(function () { showBig(false); }, BIG_SHOW * 1000);
+    tickClock();
+  }
+  $('clock').onclick = function () { showBig(true); };
+  $('bigClock').onclick = function () { showBig(false); };
+
   function tickClock() {
     var d = now();
+    var hh = pad(d.getUTCHours()), mm = pad(d.getUTCMinutes()), ss = pad(d.getUTCSeconds());
+    for (var i = 0; i < faces.length; i++) faces[i](hh, mm, ss);
+    if (bigOpen && bigFace) {
+      bigFace(hh, mm, ss);
+      $('bigDate').textContent = DIAS_LONGOS[d.getUTCDay()] + ', ' + d.getUTCDate() + ' de ' + MESES[d.getUTCMonth()];
+    }
     $('time').textContent = pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes());
     $('secs').textContent = pad(d.getUTCSeconds());
     $('date').textContent = DIAS_LONGOS[d.getUTCDay()] + ', ' + d.getUTCDate() + ' de ' + MESES[d.getUTCMonth()];
@@ -363,7 +555,7 @@ body.nightOn .toast.danger { display: block; }
 
   function staleNotif() {
     var mins = Math.floor((Date.now() - lastWeatherOk) / 60000);
-    if (mins < STALE_AFTER) return null;
+    if (mins < STALE_AFTER || waking()) return null;
     var why = /HTTP 0/.test(lastWeatherErr || '') ? 'O servidor do painel não responde'
       : 'O servidor está sem internet';
     var age = mins < 120 ? mins + ' min' : Math.floor(mins / 60) + ' h';
@@ -820,7 +1012,7 @@ body.nightOn .toast.danger { display: block; }
     shownToasts = seen;
   }
 
-  $('notifPill').onclick = function () { peekUntil = Date.now() + PEEK * 1000; renderToasts(); };
+  $('notifPill').onclick = function (e) { e.stopPropagation(); peekUntil = Date.now() + PEEK * 1000; renderToasts(); };
 
   function addToast(box, n, seen) {
     var tEl = add(box, el('div', 'toast ' + n.level + (shownToasts[n.id] ? ' old' : '')));
@@ -1015,7 +1207,7 @@ body.nightOn .toast.danger { display: block; }
       agenda = list;
       renderAgenda();
       next(30 * 60 * 1000);
-    }, function () { next(60 * 1000); });
+    }, function () { next(waking() ? 5000 : 60 * 1000); });
   });
 
   var updateWeather = makeLoop(function (next) {
@@ -1046,6 +1238,11 @@ body.nightOn .toast.danger { display: block; }
       next(10 * 60 * 1000);
     }, function (err) {
       lastWeatherErr = err.message;
+      // Logo depois de acordar o Wi-Fi do iPad ainda está voltando: tenta de 5 em 5 s.
+      if (waking()) {
+        $('status').textContent = 'Reconectando…';
+        return next(5000);
+      }
       $('status').textContent = 'Erro ao buscar o tempo (' + err.message + ')';
       next(30 * 1000);
     });
@@ -1241,7 +1438,7 @@ body.nightOn .toast.danger { display: block; }
       function finish(delay) { if (!done) { done = true; clearTimeout(guard); next(delay); } }
       var guard = setTimeout(function () { finish(0); }, 40000);
       img.onload = function () { finish(refreshSeconds * 1000); };
-      img.onerror = function () { finish(15000); };
+      img.onerror = function () { finish(waking() ? 5000 : 15000); };
       off.style.display = 'none';
       img.style.display = 'block';
       img.src = '/api/camera.jpg?_=' + Date.now();
@@ -1255,24 +1452,33 @@ body.nightOn .toast.danger { display: block; }
   // ---------- Acordar ----------
   // Com a tela apagada o iOS congela a página. Ao voltar (o relógio pulou ou a página
   // ficou visível de novo), reinicia todas as atualizações em vez de esperar os timers velhos.
-  var lastTick = Date.now(), lastWake = 0;
-  function onWake() {
+  // Nos primeiros WAKE_GRACE s depois de acordar, falhas de rede são esperadas (o Wi-Fi
+  // demora a voltar): as atualizações tentam de 5 em 5 s e o aviso vermelho espera.
+  var WAKE_GRACE = 120;
+  var lastTick = Date.now(), lastWake = Date.now(); // abrir a página também conta como acordar
+  function waking() { return Date.now() - lastWake < WAKE_GRACE * 1000; }
+  function onWake(gap) {
     if (Date.now() - lastWake < 5000) return;
     lastWake = Date.now();
-    syncClock();
+    $('status').textContent = 'Reconectando…';
+    syncClock('wake=' + Math.round((gap || 0) / 1000));
     updateWeather();
     if ($('left').className.indexOf('hasAgenda') >= 0) updateAgenda();
     if (updateCamera) updateCamera();
+    checkConfig();
+    renderToasts();
   }
   setInterval(function () {
-    if (Date.now() - lastTick > 15000) onWake();
+    var gap = Date.now() - lastTick;
     lastTick = Date.now();
+    if (gap > 15000) onWake(gap);
   }, 1000);
-  document.addEventListener('visibilitychange', function () { if (!document.hidden) onWake(); });
-  window.addEventListener('pageshow', function (e) { if (e.persisted) onWake(); });
-  window.addEventListener('focus', onWake);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) onWake(Date.now() - lastTick); });
+  window.addEventListener('pageshow', function (e) { if (e.persisted) onWake(Date.now() - lastTick); });
+  window.addEventListener('focus', function () { onWake(Date.now() - lastTick); });
 
   // ---------- Início ----------
+  try { setClockStyle(localStorage.getItem('clockStyle')); } catch (e) { setClockStyle(null); }
   tickClock();
   setInterval(tickClock, 1000);
   syncClock();
@@ -1280,7 +1486,8 @@ body.nightOn .toast.danger { display: block; }
   updateMoon();
   setInterval(updateMoon, 60 * 60 * 1000);
   updateWeather();
-  getJSON('/api/config', function (cfg) {
+  function applyConfig(cfg) {
+    setClockStyle(cfg.clock_style);
     if (cfg.camera) startCamera(cfg.camera_refresh_seconds || 5, cfg.camera_hours);
     reminders = cfg.reminders || [];
     nightHours = cfg.night_hours || null;
@@ -1292,7 +1499,23 @@ body.nightOn .toast.danger { display: block; }
     }
     cfgLoaded = true;
     renderToasts();
-  }, function () {});
+  }
+
+  // Config: carrega uma vez e depois confere a versão a cada minuto. Mudou no /admin (ou deploy novo)?
+  // Recarrega a página (mais simples e seguro que reaplicar tudo no lugar).
+  var cfgVersion = null;
+  var checkConfig = makeLoop(function (next) {
+    getJSON('/api/config', function (cfg) {
+      if (!cfgLoaded) {
+        cfgVersion = cfg.version;
+        applyConfig(cfg);
+      } else if (cfg.version !== cfgVersion) {
+        return location.reload();
+      }
+      next(60 * 1000);
+    }, function () { next(waking() || !cfgLoaded ? 5000 : 60 * 1000); });
+  });
+  checkConfig();
 
   // O Safari do iOS 9 não tem API de tela cheia; só aberto pela Tela de Início
   // (navigator.standalone) a barra some. Mostra a dica quando aberto pelo Safari.

@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Painel · Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+/* Usada no Mac/celular (navegador moderno), não no iPad do painel. */
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: #0d1117; color: #e6edf3; font: 15px/1.45 -apple-system, "Helvetica Neue", Arial, sans-serif; }
+main { max-width: 860px; margin: 0 auto; padding: 24px 16px 120px; }
+h1 { font-size: 24px; font-weight: 600; margin: 0 0 4px; }
+.sub { color: #8b949e; margin-bottom: 20px; }
+section { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 16px 18px; margin-bottom: 16px; }
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #8b949e; margin: 0 0 12px; font-weight: 600; }
+label { display: block; margin-bottom: 12px; }
+label > span { display: block; font-size: 13px; color: #8b949e; margin-bottom: 4px; }
+input[type=text], input[type=number], input[type=password], input[type=time], select, textarea {
+  width: 100%; background: #0d1117; color: #e6edf3; border: 1px solid #30363d; border-radius: 8px;
+  padding: 8px 10px; font: inherit; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: #58a6ff; }
+textarea { font: 13px/1.4 ui-monospace, Menlo, monospace; min-height: 320px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0 14px; }
+.hint { font-size: 13px; color: #8b949e; margin: -6px 0 12px; }
+.item { border: 1px solid #30363d; border-radius: 10px; padding: 12px 12px 0; margin-bottom: 10px; position: relative; }
+.item .grid { padding-right: 34px; }
+.del { position: absolute; right: 8px; top: 8px; width: 28px; height: 28px; border-radius: 6px; border: 0;
+  background: transparent; color: #8b949e; font-size: 18px; cursor: pointer; }
+.del:hover { background: rgba(248,81,73,0.15); color: #f85149; }
+button.add { background: transparent; border: 1px dashed #30363d; color: #8b949e; border-radius: 8px;
+  padding: 8px 12px; font: inherit; cursor: pointer; }
+button.add:hover { border-color: #58a6ff; color: #58a6ff; }
+.check { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.days { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.days label { margin: 0; }
+.days input { display: none; }
+.days span { display: inline-block; min-width: 44px; text-align: center; padding: 6px 8px; border-radius: 8px;
+  border: 1px solid #30363d; color: #8b949e; cursor: pointer; font-size: 13px; margin: 0; }
+.days input:checked + span { background: #1f6feb; border-color: #1f6feb; color: #fff; }
+.styles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+.styles label { margin: 0; cursor: pointer; }
+.styles input { display: none; }
+.styles .card { border: 2px solid #30363d; border-radius: 10px; padding: 12px 8px 8px; text-align: center; }
+.styles input:checked + .card { border-color: #58a6ff; }
+.styles .card small { display: block; color: #8b949e; margin-top: 8px; }
+.pv-classic { font-size: 34px; font-weight: 400; letter-spacing: -1px; height: 48px; line-height: 48px; }
+.pv-flip { display: flex; gap: 6px; justify-content: center; height: 48px; }
+.pv-flip b { position: relative; background: #171717; color: #f4f4f4; border-radius: 5px; width: 46px;
+  font-size: 30px; line-height: 46px; letter-spacing: -1px; box-shadow: 0 2px 0 #050505; }
+.pv-flip b:after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: #000; }
+.pv-digi { display: inline-block; background: #050505; border: 1px solid #2d2f33; border-radius: 6px; padding: 6px 10px;
+  height: 48px; }
+.pv-digi svg { height: 34px; display: block; }
+.bar { position: fixed; left: 0; right: 0; bottom: 0; background: rgba(13,17,23,0.95); border-top: 1px solid #30363d;
+  padding: 12px 16px; backdrop-filter: blur(6px); }
+.bar .in { max-width: 860px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
+.save { background: #238636; color: #fff; border: 0; border-radius: 8px; padding: 10px 22px; font: 600 15px inherit;
+  font-family: inherit; cursor: pointer; }
+.save:disabled { opacity: 0.5; cursor: default; }
+#msg { flex: 1; font-size: 14px; }
+#msg.err { color: #ffa198; }
+#msg.ok { color: #7ee787; }
+details summary { cursor: pointer; color: #8b949e; }
+details[open] summary { margin-bottom: 12px; }
+.row2 { display: flex; gap: 10px; margin-top: 10px; }
+.btn2 { background: #21262d; color: #e6edf3; border: 1px solid #30363d; border-radius: 8px; padding: 7px 14px;
+  font: inherit; cursor: pointer; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Painel · Admin</h1>
+  <div class="sub">Salvar grava o <code>config.json</code> no servidor. O iPad percebe a mudança em até 1 minuto e recarrega sozinho.</div>
+  <form id="form" autocomplete="off"></form>
+</main>
+<div class="bar"><div class="in">
+  <div id="msg"></div>
+  <button class="save" id="save" type="button" disabled>Salvar</button>
+</div></div>
+
+<script>
+'use strict';
+const API = '/api/admin/config';
+const DIAS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+let cfg = null;      // config carregado (chaves desconhecidas são preservadas)
+let dirty = false;
+
+const $ = (s, root = document) => root.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+function msg(text, cls = '') { const m = $('#msg'); m.textContent = text; m.className = cls; }
+function markDirty() { dirty = true; $('#save').disabled = false; msg('Alterações não salvas'); }
+
+// "23:00-06:00" <-> dois <input type=time> e uma caixa "ligado".
+function hoursField(name, value, label, offLabel) {
+  const [a, b] = value ? value.split('-') : ['', ''];
+  return `<div class="check"><input type="checkbox" data-hours-on="${name}" ${value ? 'checked' : ''}>
+    <span>${esc(label)}</span></div>
+    <div class="grid" data-hours="${name}" ${value ? '' : 'hidden'}>
+      <label><span>Início</span><input type="time" data-h="a" value="${esc(a)}"></label>
+      <label><span>Fim</span><input type="time" data-h="b" value="${esc(b)}"></label>
+    </div>
+    ${offLabel ? `<div class="hint" data-hours-off="${name}" ${value ? 'hidden' : ''}>${esc(offLabel)}</div>` : ''}`;
+}
+function readHours(name) {
+  if (!$(`[data-hours-on="${name}"]`).checked) return '';
+  const box = $(`[data-hours="${name}"]`);
+  const a = $('[data-h=a]', box).value, b = $('[data-h=b]', box).value;
+  return a && b ? `${a}-${b}` : '';
+}
+
+function digitPreview() {
+  // Mini 12:30 em 7 segmentos para o seletor de estilo.
+  const on = '#ff3b2f', off = '#1e0806';
+  const SEGS = ['abcdef', 'bc', 'abged', 'abgcd', 'fgbc', 'afgcd', 'afgedc', 'abc', 'abcdefg', 'abcdfg'];
+  const dig = (x, n) => {
+    const W = 50, H = 90, h2 = 4.5, g = 1.5;
+    const hs = yc => [x + h2 + g, yc, x + h2 + g + h2, yc - h2, x + W - h2 - g - h2, yc - h2, x + W - h2 - g, yc, x + W - h2 - g - h2, yc + h2, x + h2 + g + h2, yc + h2];
+    const vs = (xc, y0, y1) => [xc, y0, xc + h2, y0 + h2, xc + h2, y1 - h2, xc, y1, xc - h2, y1 - h2, xc - h2, y0 + h2];
+    const s = { a: hs(h2), g: hs(H / 2), d: hs(H - h2), f: vs(x + h2, h2 + g, H / 2 - g), b: vs(x + W - h2, h2 + g, H / 2 - g),
+      e: vs(x + h2, H / 2 + g, H - h2 - g), c: vs(x + W - h2, H / 2 + g, H - h2 - g) };
+    return Object.keys(s).map(k => `<polygon points="${s[k]}" fill="${SEGS[n].includes(k) ? on : off}"/>`).join('');
+  };
+  return `<svg viewBox="0 0 266 90">${dig(0, 1)}${dig(62, 2)}<circle cx="133" cy="28" r="6" fill="${on}"/><circle cx="133" cy="62" r="6" fill="${on}"/>${dig(154, 3)}${dig(216, 0)}</svg>`;
+}
+
+function cityItem(c, i, mainIdx) {
+  return `<div class="item" data-list="cities" ${i >= 0 ? `data-idx="${i}"` : ''}>
+    <button type="button" class="del" title="Remover">×</button>
+    <div class="grid">
+      <label><span>Nome</span><input type="text" data-k="name" value="${esc(c.name)}"></label>
+      <label><span>Latitude</span><input type="number" step="any" data-k="lat" value="${esc(c.lat)}"></label>
+      <label><span>Longitude</span><input type="number" step="any" data-k="lon" value="${esc(c.lon)}"></label>
+    </div>
+    <div class="check"><input type="radio" name="mainCity" ${i === mainIdx ? 'checked' : ''}>
+      <span>Cidade principal (card grande, avisos e fundo)</span></div>
+  </div>`;
+}
+
+function calItem(list, item) {
+  const it = typeof item === 'string' ? { url: item } : (item || {});
+  return `<div class="item" data-list="${list}">
+    <button type="button" class="del" title="Remover">×</button>
+    <div class="grid" style="grid-template-columns: 1fr 3fr">
+      <label><span>Nome</span><input type="text" data-k="name" value="${esc(it.name)}"></label>
+      <label><span>URL</span><input type="text" data-k="url" value="${esc(it.url)}" placeholder="https://…"></label>
+    </div>
+  </div>`;
+}
+
+function reminderItem(r) {
+  const days = (r.days || []).map(d => d.toLowerCase().replace('á', 'a').slice(0, 3));
+  const level = r.urgent ? 'danger' : (r.level || 'info');
+  return `<div class="item" data-list="reminders">
+    <button type="button" class="del" title="Remover">×</button>
+    <div class="grid">
+      <label><span>Texto</span><input type="text" data-k="text" value="${esc(r.text)}"></label>
+      <label><span>Detalhe</span><input type="text" data-k="detail" value="${esc(r.detail)}"></label>
+      <label><span>Cor</span><select data-k="level">
+        <option value="info" ${level === 'info' ? 'selected' : ''}>Azul (info)</option>
+        <option value="warning" ${level === 'warning' ? 'selected' : ''}>Amarelo (atenção)</option>
+        <option value="danger" ${level === 'danger' ? 'selected' : ''}>Vermelho (urgente)</option>
+      </select></label>
+    </div>
+    <div class="days">${DIAS.map(d => `<label><input type="checkbox" data-day="${d}" ${days.includes(d) ? 'checked' : ''}><span>${d}</span></label>`).join('')}</div>
+  </div>`;
+}
+
+const TEMPLATES = {
+  cities: () => cityItem({ name: '', lat: '', lon: '' }, -1, 0),
+  ics_urls: () => calItem('ics_urls', {}),
+  apps_script_urls: () => calItem('apps_script_urls', {}),
+  reminders: () => reminderItem({ days: [] })
+};
+
+function render() {
+  const cal = cfg.calendar || {}, cam = cfg.camera || {};
+  const style = cfg.clock_style || 'classico';
+  const mainIdx = Math.max(0, (cfg.cities || []).findIndex(c => c.detailed));
+  $('#form').innerHTML = `
+  <section>
+    <h2>Relógio</h2>
+    <div class="styles">
+      <label><input type="radio" name="clock_style" value="classico" ${style === 'classico' ? 'checked' : ''}>
+        <div class="card"><div class="pv-classic">12:30</div><small>Clássico</small></div></label>
+      <label><input type="radio" name="clock_style" value="flip" ${style === 'flip' ? 'checked' : ''}>
+        <div class="card"><div class="pv-flip"><b>12</b><b>30</b></div><small>Flip</small></div></label>
+      <label><input type="radio" name="clock_style" value="digital" ${style === 'digital' ? 'checked' : ''}>
+        <div class="card"><div class="pv-digi">${digitPreview()}</div><small>Digital</small></div></label>
+    </div>
+    ${hoursField('night', cfg.night_hours ?? '23:00-06:00', 'Modo noturno (tela preta, só o relógio apagado)', 'Modo noturno desligado.')}
+  </section>
+
+  <section>
+    <h2>Cidades</h2>
+    <div id="cities">${(cfg.cities || []).map((c, i) => cityItem(c, i, mainIdx)).join('')}</div>
+    <button type="button" class="add" data-add="cities">+ cidade</button>
+    <div class="hint" style="margin-top:10px">Coordenadas: no Google Maps, clique com o botão direito no lugar → os números do topo são latitude, longitude.</div>
+  </section>
+
+  <section>
+    <h2>Agenda</h2>
+    <div class="hint">Links .ics (Google: Configurações da agenda → "Endereço secreto no formato iCal").</div>
+    <div id="ics_urls">${(cal.ics_urls || []).map(it => calItem('ics_urls', it)).join('')}</div>
+    <button type="button" class="add" data-add="ics_urls">+ agenda .ics</button>
+    <div class="hint" style="margin-top:16px">Apps Script (opcional, ver apps-script.gs).</div>
+    <div id="apps_script_urls">${(cal.apps_script_urls || []).map(it => calItem('apps_script_urls', it)).join('')}</div>
+    <button type="button" class="add" data-add="apps_script_urls">+ Apps Script</button>
+    <div class="grid" style="margin-top:16px">
+      <label><span>Dias à frente</span><input type="number" min="1" max="14" id="calDays" value="${esc(cal.days ?? 5)}"></label>
+      <label><span>Máximo de eventos</span><input type="number" min="1" max="500" id="calMax" value="${esc(cal.max_events ?? 50)}"></label>
+    </div>
+  </section>
+
+  <section>
+    <h2>Câmera</h2>
+    <label><span>RTSP (Tapo: rtsp://usuário:senha@IP:554/stream2)</span><input type="text" id="rtsp" value="${esc(cam.rtsp_url)}"></label>
+    <label><span>Ou URL de snapshot JPEG</span><input type="text" id="snap" value="${esc(cam.snapshot_url)}"></label>
+    <div class="grid">
+      <label><span>Usuário (snapshot)</span><input type="text" id="camUser" value="${esc(cam.username)}"></label>
+      <label><span>Senha (snapshot)</span><input type="password" id="camPass" value="${esc(cam.password)}"></label>
+      <label><span>Atualizar a cada (s)</span><input type="number" min="1" max="600" id="camRefresh" value="${esc(cam.refresh_seconds ?? 5)}"></label>
+    </div>
+    <div class="check"><input type="checkbox" id="camBasic" ${cam.force_basic_auth ? 'checked' : ''}><span>Forçar Basic Auth (snapshot)</span></div>
+    ${hoursField('cam', cam.active_hours ?? '', 'Só em um horário (fora dele o ffmpeg não roda)', 'Câmera sempre ligada.')}
+  </section>
+
+  <section>
+    <h2>Lembretes</h2>
+    <div id="reminders">${(cfg.reminders || []).map(reminderItem).join('')}</div>
+    <button type="button" class="add" data-add="reminders">+ lembrete</button>
+  </section>
+
+  <section>
+    <h2>Sistema</h2>
+    <div class="grid">
+      <label><span>Fuso horário</span><input type="text" id="tz" value="${esc(cfg.timezone || 'America/Sao_Paulo')}"></label>
+      <label><span>Porta (exige reiniciar o serviço)</span><input type="number" id="port" value="${esc(cfg.port ?? 8080)}"></label>
+      <label><span>Senha deste admin (vazio = sem senha)</span><input type="password" id="adminPwd" value="${esc(cfg.admin_password)}"></label>
+    </div>
+    <details>
+      <summary>Editar JSON direto</summary>
+      <textarea id="json" spellcheck="false"></textarea>
+      <div class="row2"><button type="button" class="btn2" id="jsonApply">Usar este JSON no formulário</button></div>
+    </details>
+  </section>`;
+  $('#json').value = JSON.stringify(cfg, null, 2);
+}
+
+function num(v) { return v === '' ? NaN : Number(v); }
+
+function collect() {
+  const out = structuredClone(cfg);
+  out.clock_style = $('input[name=clock_style]:checked').value;
+  out.night_hours = readHours('night');
+
+  out.cities = [...document.querySelectorAll('[data-list=cities]')].map(e => {
+    const old = e.dataset.idx !== undefined ? (cfg.cities || [])[+e.dataset.idx] || {} : {};
+    const c = { ...old, name: $('[data-k=name]', e).value.trim(), lat: num($('[data-k=lat]', e).value), lon: num($('[data-k=lon]', e).value) };
+    delete c.detailed;
+    if ($('input[name=mainCity]', e).checked) c.detailed = true;
+    return c;
+  });
+  if (out.cities.length && !out.cities.some(c => c.detailed)) out.cities[0].detailed = true;
+
+  const calList = key => [...document.querySelectorAll(`[data-list=${key}]`)]
+    .map(e => ({ name: $('[data-k=name]', e).value.trim(), url: $('[data-k=url]', e).value.trim() }))
+    .filter(it => it.url)
+    .map(it => it.name ? it : it.url);
+  out.calendar = { ...(cfg.calendar || {}), ics_urls: calList('ics_urls'), apps_script_urls: calList('apps_script_urls'),
+    days: parseInt($('#calDays').value, 10) || 5, max_events: parseInt($('#calMax').value, 10) || 50 };
+
+  out.camera = { ...(cfg.camera || {}), rtsp_url: $('#rtsp').value.trim(), snapshot_url: $('#snap').value.trim(),
+    username: $('#camUser').value, password: $('#camPass').value, force_basic_auth: $('#camBasic').checked,
+    refresh_seconds: parseInt($('#camRefresh').value, 10) || 5, active_hours: readHours('cam') };
+
+  out.reminders = [...document.querySelectorAll('[data-list=reminders]')].map(e => {
+    const r = { days: DIAS.filter(d => $(`[data-day=${d}]`, e).checked), text: $('[data-k=text]', e).value.trim() };
+    const detail = $('[data-k=detail]', e).value.trim();
+    if (detail) r.detail = detail;
+    const level = $('[data-k=level]', e).value;
+    if (level !== 'info') r.level = level;
+    return r;
+  }).filter(r => r.text);
+
+  out.timezone = $('#tz').value.trim() || 'America/Sao_Paulo';
+  out.port = parseInt($('#port').value, 10) || 8080;
+  const pwd = $('#adminPwd').value;
+  if (pwd) out.admin_password = pwd; else delete out.admin_password;
+  return out;
+}
+
+async function load() {
+  const r = await fetch(API, { cache: 'no-store' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  cfg = await r.json();
+  render();
+  dirty = false;
+  $('#save').disabled = true;
+}
+
+async function save() {
+  let body;
+  const details = $('details');
+  try {
+    // JSON aberto e mexido: ele vale; senão, o formulário.
+    body = details.open && $('#json').dataset.touched ? JSON.parse($('#json').value) : collect();
+  } catch (e) { return msg('JSON inválido: ' + e.message, 'err'); }
+  $('#save').disabled = true;
+  msg('Salvando…');
+  const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!r.ok) { $('#save').disabled = false; return msg('Não salvou: ' + await r.text(), 'err'); }
+  const res = await r.json();
+  await load();
+  msg(res.restart_needed ? 'Salvo. A porta mudou: reinicie o serviço (sudo systemctl restart painel).'
+    : 'Salvo. O iPad recarrega em até 1 minuto.', 'ok');
+}
+
+document.addEventListener('input', e => {
+  if (e.target.id === 'json') e.target.dataset.touched = '1';
+  markDirty();
+});
+document.addEventListener('change', e => {
+  const on = e.target.dataset.hoursOn;
+  if (on) {
+    $(`[data-hours="${on}"]`).hidden = !e.target.checked;
+    const off = $(`[data-hours-off="${on}"]`);
+    if (off) off.hidden = e.target.checked;
+  }
+  markDirty();
+});
+document.addEventListener('click', e => {
+  const t = e.target;
+  if (t.classList.contains('del')) { t.closest('.item').remove(); markDirty(); }
+  if (t.dataset.add) {
+    $('#' + t.dataset.add).insertAdjacentHTML('beforeend', TEMPLATES[t.dataset.add]());
+    markDirty();
+  }
+  if (t.id === 'jsonApply') {
+    try { cfg = JSON.parse($('#json').value); } catch (err) { return msg('JSON inválido: ' + err.message, 'err'); }
+    render(); markDirty();
+  }
+});
+$('#save').addEventListener('click', save);
+window.addEventListener('beforeunload', e => { if (dirty) e.preventDefault(); });
+
+load().catch(e => msg('Não carregou o config: ' + e.message, 'err'));
+</script>
+</body>
+</html>

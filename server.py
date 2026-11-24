@@ -9,6 +9,8 @@ Uso: python3 server.py   (sem dependências; Python 3.7+)
 """
 import base64
 import calendar
+import hashlib
+import hmac
 import json
 import math
 import os
@@ -32,6 +34,17 @@ with open(CONFIG_PATH, encoding="utf-8") as f:
     CONFIG = json.load(f)
 
 LOCAL_TZ = ZoneInfo(CONFIG.get("timezone", "America/Sao_Paulo"))
+CLOCK_STYLES = ("classico", "flip", "digital")
+
+
+def config_version():
+    """Muda quando o config ou o index.html mudam: a página compara e recarrega sozinha
+    (também depois de um deploy)."""
+    try:
+        page = str(os.path.getmtime(os.path.join(ROOT, "index.html")))
+    except OSError:
+        page = ""
+    return hashlib.sha1((json.dumps(CONFIG, sort_keys=True) + page).encode("utf-8")).hexdigest()[:12]
 
 WEATHER_TTL = 10 * 60  # segundos
 _weather_cache = {"at": 0, "body": None}
@@ -422,10 +435,18 @@ class RtspGrabber:
         self.last_request = 0
         self.lock = threading.Lock()
         self.thread = None
+        self.closed = False  # config mudou: este grabber não religa mais o ffmpeg
+
+    def close(self):
+        self.closed = True
+        if self.proc:
+            self.proc.kill()
 
     def get(self):
         self.last_request = time.time()
         for _ in range(400):  # espera até 40s por um quadro recente (~15s no Raspberry Pi 1)
+            if self.closed:
+                raise RuntimeError("câmera reconfigurada")
             with self.lock:
                 if self.frame and time.time() - self.frame_at > self.STALE and self.proc:
                     self.proc.kill()  # travou (ex.: troca de rede): o _run termina e recomeça
@@ -447,7 +468,7 @@ class RtspGrabber:
         proc = self.proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         buf = b""
         try:
-            while time.time() - self.last_request < self.IDLE_STOP:
+            while time.time() - self.last_request < self.IDLE_STOP and not self.closed:
                 chunk = proc.stdout.read(65536)
                 if not chunk:
                     break
@@ -566,6 +587,78 @@ def get_camera_snapshot():
         return r.read()
 
 
+# ---------- Admin (editar o config.json pelo navegador) ----------
+
+HOURS_RE = re.compile(r"^([01]\d|2[0-3]):[0-5]\d-([01]\d|2[0-3]):[0-5]\d$")
+
+
+def validate_config(cfg):
+    """Devolve uma mensagem de erro, ou None se o config pode ser salvo."""
+    if not isinstance(cfg, dict):
+        return "o config precisa ser um objeto JSON"
+    try:
+        ZoneInfo(cfg.get("timezone", "America/Sao_Paulo"))
+    except Exception:
+        return "fuso horário inválido: %s" % cfg.get("timezone")
+    cities = cfg.get("cities")
+    if not isinstance(cities, list) or not cities:
+        return "precisa de pelo menos uma cidade"
+    for c in cities:
+        if not isinstance(c, dict) or not str(c.get("name", "")).strip():
+            return "toda cidade precisa de nome"
+        lat, lon = c.get("lat"), c.get("lon")
+        if not isinstance(lat, (int, float)) or not isinstance(lon, (int, float)) \
+                or not -90 <= lat <= 90 or not -180 <= lon <= 180:
+            return "latitude/longitude inválida em %s" % c["name"]
+    for label, value in (("modo noturno", cfg.get("night_hours", "")),
+                         ("horário da câmera", (cfg.get("camera") or {}).get("active_hours", ""))):
+        if value and not HOURS_RE.match(value):
+            return "%s: use HH:MM-HH:MM (ex.: 23:00-06:00)" % label
+    if cfg.get("clock_style", "classico") not in CLOCK_STYLES:
+        return "estilo de relógio inválido"
+    port = cfg.get("port", 8080)
+    if not isinstance(port, int) or not 1 <= port <= 65535:
+        return "porta inválida"
+    cal = cfg.get("calendar") or {}
+    for key in ("ics_urls", "apps_script_urls"):
+        for item in cal.get(key, []):
+            url = item if isinstance(item, str) else (item or {}).get("url", "")
+            if not re.match(r"^(https?|webcal)://", url or ""):
+                return "URL de agenda inválida: %s" % (url or "(vazia)")
+    for r in cfg.get("reminders") or []:
+        if not isinstance(r, dict) or not str(r.get("text", "")).strip():
+            return "todo lembrete precisa de texto"
+    return None
+
+
+def save_config(new):
+    """Grava o config.json (com cópia .bak do anterior) e aplica sem reiniciar."""
+    global LOCAL_TZ, _rtsp
+    tmp = CONFIG_PATH + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(new, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+    os.chmod(tmp, 0o600)  # tem senhas
+    if os.path.exists(CONFIG_PATH):
+        shutil.copy2(CONFIG_PATH, CONFIG_PATH + ".bak")
+    os.replace(tmp, CONFIG_PATH)
+
+    camera_changed = new.get("camera") != CONFIG.get("camera")
+    CONFIG.update(new)  # sem clear(): requisições em andamento nunca veem o config vazio
+    for k in [k for k in CONFIG if k not in new]:
+        del CONFIG[k]
+    LOCAL_TZ = ZoneInfo(CONFIG.get("timezone", "America/Sao_Paulo"))
+    with _weather_lock:
+        _weather_cache["at"] = 0
+    with _cal_lock:
+        _cal_cache["at"] = 0
+    if camera_changed:
+        with _rtsp_lock:
+            if _rtsp is not None:
+                _rtsp.close()
+                _rtsp = None
+
+
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=ROOT, **kwargs)
@@ -573,7 +666,7 @@ class Handler(SimpleHTTPRequestHandler):
     def end_headers(self):
         # A página: o iPad sempre confere se mudou (responde 304 se não), senão o
         # Safari fica dias com a versão antiga em cache.
-        if self.path.split("?")[0] in ("/", "/index.html"):
+        if self.path.split("?")[0] in ("/", "/index.html", "/admin.html"):
             self.send_header("Cache-Control", "no-cache")
         super().end_headers()
 
@@ -585,14 +678,60 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def admin_ok(self):
+        """Admin aberto na rede local; com admin_password no config pede senha (qualquer usuário)."""
+        pwd = CONFIG.get("admin_password")
+        if not pwd:
+            return True
+        auth = self.headers.get("Authorization", "")
+        if auth.startswith("Basic "):
+            try:
+                given = base64.b64decode(auth[6:]).decode("utf-8").split(":", 1)[1]
+                if hmac.compare_digest(given.encode("utf-8"), str(pwd).encode("utf-8")):
+                    return True
+            except Exception:
+                pass
+        self.send_response(401)
+        self.send_header("WWW-Authenticate", 'Basic realm="Painel admin"')
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+        return False
+
+    def do_POST(self):
+        path = self.path.split("?")[0]
+        if path != "/api/admin/config":
+            return self.send_error(404)
+        if not self.admin_ok():
+            return
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            new = json.loads(self.rfile.read(length).decode("utf-8"))
+        except Exception as e:
+            return self.send_bytes(("JSON inválido: %s" % e).encode("utf-8"), "text/plain; charset=utf-8", 400)
+        err = validate_config(new)
+        if err:
+            return self.send_bytes(err.encode("utf-8"), "text/plain; charset=utf-8", 400)
+        restart = new.get("port", 8080) != CONFIG.get("port", 8080)
+        save_config(new)
+        self.log_message("config salvo pelo admin (versão %s)", config_version())
+        body = json.dumps({"ok": True, "version": config_version(), "restart_needed": restart})
+        return self.send_bytes(body.encode("utf-8"), "application/json; charset=utf-8")
+
     def do_GET(self):
         path = self.path.split("?")[0]
+        if path in ("/admin", "/admin.html", "/api/admin/config") and not self.admin_ok():
+            return
         try:
+            if path == "/api/admin/config":
+                body = json.dumps(CONFIG, ensure_ascii=False).encode("utf-8")
+                return self.send_bytes(body, "application/json; charset=utf-8")
             if path == "/api/weather":
                 return self.send_bytes(get_weather(), "application/json; charset=utf-8")
             if path == "/api/config":
                 cam = CONFIG.get("camera") or {}
                 body = json.dumps({
+                    "version": config_version(),
+                    "clock_style": CONFIG.get("clock_style", "classico"),
                     "camera": bool(cam.get("snapshot_url") or cam.get("rtsp_url")),
                     "camera_refresh_seconds": cam.get("refresh_seconds", 5),
                     "camera_hours": cam.get("active_hours") or None,
@@ -625,7 +764,10 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception as e:  # erro externo: devolve 502 e a página tenta de novo depois
             self.log_error("%s: %s", path, e)
             return self.send_bytes(str(e).encode("utf-8"), "text/plain", 502)
-        if path in ("/", "/index.html", "/apple-touch-icon.png"):
+        if path == "/admin":
+            self.path = "/admin.html"
+            path = "/admin.html"
+        if path in ("/", "/index.html", "/admin.html", "/apple-touch-icon.png"):
             return super().do_GET()
         self.send_error(404)
 

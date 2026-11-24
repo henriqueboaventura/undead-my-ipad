@@ -23,6 +23,7 @@ Arquivos:
 | Arquivo | O que é |
 |---|---|
 | `index.html` | A página (ES5 + flexbox, compatível com Safari 9) |
+| `admin.html` | Admin em `/admin`: edita o `config.json` pelo navegador |
 | `server.py` | Servidor: previsão, lua, câmera e agenda |
 | `config.example.json` | Modelo de configuração, sem senhas |
 | `config.json` | Sua configuração com senhas — **fora do git** |
@@ -90,10 +91,20 @@ Preencha:
   fica preta, só com o relógio apagado; um toque mostra o painel por 1 min.
   Notificações vermelhas aparecem mesmo assim.
   Deixe `""` para desligar.
+- `clock_style`: `"classico"` (padrão), `"flip"` (cartões pretos com
+  número branco, viram a cada minuto) ou `"digital"` (7 segmentos vermelhos).
+  Vale também para o modo noturno.
+- `admin_password`: senha do `/admin` (qualquer usuário). Vazio = aberto na
+  rede local.
 - `cities`: cidades e coordenadas. A cidade com `"detailed": true` é a
   principal: aparece no card de cima, nos avisos e no fundo. Deslizando no card
   de cima aparece a previsão completa das outras; sem tocar por 1 min, volta
   para a principal.
+
+Tudo isso também pode ser editado em `http://IP-DO-SERVIDOR:PORTA/admin`, de
+qualquer navegador da rede. Salvar grava o `config.json` (o anterior fica em
+`config.json.bak`), aplica na hora e o iPad recarrega sozinho em até 1 minuto.
+Só mudar a porta exige reiniciar o serviço.
 
 ### 4. Testar no terminal
 
@@ -198,6 +209,13 @@ logs do sistema só na RAM, para poupar o cartão SD.
 | Ver o log | `journalctl -u painel -f` |
 | Reiniciar (após mudar `config.json`) | `sudo systemctl restart painel` |
 | Atualizar | copie de novo com `rsync` (ou `git pull`) e reinicie |
+
+Depois da primeira cópia, o `config.json` do Pi passa a ser editado pelo
+`/admin`. Nas atualizações, não sobrescreva:
+
+```sh
+rsync -a --exclude server.log --exclude 'config.json*' ./ USUARIO@IP-DO-PI:~/undead-my-ipad/
+```
 
 ### Raspberry Pi 1 B+: o que observar
 
