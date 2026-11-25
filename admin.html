@@ -52,6 +52,11 @@ button.add:hover { border-color: #58a6ff; color: #58a6ff; }
 .pv-digi { display: inline-block; background: #050505; border: 1px solid #2d2f33; border-radius: 6px; padding: 6px 10px;
   height: 48px; }
 .pv-digi svg { height: 34px; display: block; }
+input[type=color] { width: 100%; height: 38px; padding: 2px; background: #0d1117; border: 1px solid #30363d;
+  border-radius: 8px; cursor: pointer; }
+.pvEv { text-align: left; font-size: 13px; margin: 0 4px 6px; padding: 4px 8px; border-left: 4px solid;
+  border-radius: 0 5px 5px 0; background: rgba(255,255,255,0.04); }
+.styles.two { grid-template-columns: repeat(2, 1fr); margin-top: 16px; }
 .bar { position: fixed; left: 0; right: 0; bottom: 0; background: rgba(13,17,23,0.95); border-top: 1px solid #30363d;
   padding: 12px 16px; backdrop-filter: blur(6px); }
 .bar .in { max-width: 860px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
@@ -138,15 +143,36 @@ function cityItem(c, i, mainIdx) {
   </div>`;
 }
 
-function calItem(list, item) {
+// Mesma paleta padrão do painel (index.html), na ordem: .ics primeiro, depois Apps Script.
+const CAL_COLORS = ['#58a6ff', '#f0883e', '#3fb950', '#bc8cff', '#e3b341'];
+
+function calItem(list, item, idx) {
   const it = typeof item === 'string' ? { url: item } : (item || {});
+  const color = it.color || CAL_COLORS[idx % CAL_COLORS.length];
   return `<div class="item" data-list="${list}">
     <button type="button" class="del" title="Remover">×</button>
-    <div class="grid" style="grid-template-columns: 1fr 3fr">
+    <div class="grid" style="grid-template-columns: 1fr 3fr 56px">
       <label><span>Nome</span><input type="text" data-k="name" value="${esc(it.name)}"></label>
       <label><span>URL</span><input type="text" data-k="url" value="${esc(it.url)}" placeholder="https://…"></label>
+      <label><span>Cor</span><input type="color" data-k="color" value="${esc(color)}"></label>
     </div>
   </div>`;
+}
+
+function calCount() { return document.querySelectorAll('[data-list=ics_urls], [data-list=apps_script_urls]').length; }
+
+function hexA(hex, a) {
+  return `rgba(${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)},${a})`;
+}
+// Prévia do estilo de cor com as cores atuais das agendas.
+function stylePreview(fill) {
+  const items = [...document.querySelectorAll('[data-k=color]')].slice(0, 2).map(i => i.value);
+  const colors = items.length ? items : CAL_COLORS.slice(0, 2);
+  return colors.map((c, i) => `<div class="pvEv" style="border-left-color:${c};${fill ? `background:${hexA(c, 0.26)}` : ''}">
+    <b>${['09:00', '14:30'][i]}</b> ${['Reunião', 'Dentista'][i]}</div>`).join('');
+}
+function refreshPreviews() {
+  document.querySelectorAll('[data-pv]').forEach(e => { e.innerHTML = stylePreview(e.dataset.pv === 'fill'); });
 }
 
 function reminderItem(r) {
@@ -169,8 +195,8 @@ function reminderItem(r) {
 
 const TEMPLATES = {
   cities: () => cityItem({ name: '', lat: '', lon: '' }, -1, 0),
-  ics_urls: () => calItem('ics_urls', {}),
-  apps_script_urls: () => calItem('apps_script_urls', {}),
+  ics_urls: () => calItem('ics_urls', {}, calCount()),
+  apps_script_urls: () => calItem('apps_script_urls', {}, calCount()),
   reminders: () => reminderItem({ days: [] })
 };
 
@@ -202,11 +228,17 @@ function render() {
   <section>
     <h2>Agenda</h2>
     <div class="hint">Links .ics (Google: Configurações da agenda → "Endereço secreto no formato iCal").</div>
-    <div id="ics_urls">${(cal.ics_urls || []).map(it => calItem('ics_urls', it)).join('')}</div>
+    <div id="ics_urls">${(cal.ics_urls || []).map((it, i) => calItem('ics_urls', it, i)).join('')}</div>
     <button type="button" class="add" data-add="ics_urls">+ agenda .ics</button>
     <div class="hint" style="margin-top:16px">Apps Script (opcional, ver apps-script.gs).</div>
-    <div id="apps_script_urls">${(cal.apps_script_urls || []).map(it => calItem('apps_script_urls', it)).join('')}</div>
+    <div id="apps_script_urls">${(cal.apps_script_urls || []).map((it, i) => calItem('apps_script_urls', it, (cal.ics_urls || []).length + i)).join('')}</div>
     <button type="button" class="add" data-add="apps_script_urls">+ Apps Script</button>
+    <div class="styles two">
+      <label><input type="radio" name="color_style" value="border" ${(cal.color_style || 'border') === 'border' ? 'checked' : ''}>
+        <div class="card"><div data-pv="border"></div><small>Cor só na borda</small></div></label>
+      <label><input type="radio" name="color_style" value="fill" ${cal.color_style === 'fill' ? 'checked' : ''}>
+        <div class="card"><div data-pv="fill"></div><small>Cor no fundo do evento</small></div></label>
+    </div>
     <div class="grid" style="margin-top:16px">
       <label><span>Dias à frente</span><input type="number" min="1" max="14" id="calDays" value="${esc(cal.days ?? 5)}"></label>
       <label><span>Máximo de eventos</span><input type="number" min="1" max="500" id="calMax" value="${esc(cal.max_events ?? 50)}"></label>
@@ -246,6 +278,7 @@ function render() {
     </details>
   </section>`;
   $('#json').value = JSON.stringify(cfg, null, 2);
+  refreshPreviews();
 }
 
 function num(v) { return v === '' ? NaN : Number(v); }
@@ -265,10 +298,14 @@ function collect() {
   if (out.cities.length && !out.cities.some(c => c.detailed)) out.cities[0].detailed = true;
 
   const calList = key => [...document.querySelectorAll(`[data-list=${key}]`)]
-    .map(e => ({ name: $('[data-k=name]', e).value.trim(), url: $('[data-k=url]', e).value.trim() }))
-    .filter(it => it.url)
-    .map(it => it.name ? it : it.url);
+    .map(e => {
+      const it = { url: $('[data-k=url]', e).value.trim(), color: $('[data-k=color]', e).value };
+      const name = $('[data-k=name]', e).value.trim();
+      return name ? { name, ...it } : it;
+    })
+    .filter(it => it.url);
   out.calendar = { ...(cfg.calendar || {}), ics_urls: calList('ics_urls'), apps_script_urls: calList('apps_script_urls'),
+    color_style: $('input[name=color_style]:checked').value,
     days: parseInt($('#calDays').value, 10) || 5, max_events: parseInt($('#calMax').value, 10) || 50 };
 
   out.camera = { ...(cfg.camera || {}), rtsp_url: $('#rtsp').value.trim(), snapshot_url: $('#snap').value.trim(),
@@ -319,6 +356,7 @@ async function save() {
 
 document.addEventListener('input', e => {
   if (e.target.id === 'json') e.target.dataset.touched = '1';
+  if (e.target.dataset.k === 'color') refreshPreviews();
   markDirty();
 });
 document.addEventListener('change', e => {
@@ -332,9 +370,10 @@ document.addEventListener('change', e => {
 });
 document.addEventListener('click', e => {
   const t = e.target;
-  if (t.classList.contains('del')) { t.closest('.item').remove(); markDirty(); }
+  if (t.classList.contains('del')) { t.closest('.item').remove(); refreshPreviews(); markDirty(); }
   if (t.dataset.add) {
     $('#' + t.dataset.add).insertAdjacentHTML('beforeend', TEMPLATES[t.dataset.add]());
+    refreshPreviews();
     markDirty();
   }
   if (t.id === 'jsonApply') {

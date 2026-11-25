@@ -153,6 +153,101 @@ def next_moon_events(lat, lon):
     return {"rise": fmt(rise), "set": fmt(set_)}
 
 
+# ---------- Sol (crepúsculo, meio-dia, hora dourada) ----------
+# Port do getTimes do SunCalc (Vladimir Agafonkin, BSD-2).
+
+def sun_times(day, lat, lon):
+    """Instantes do dia local `day` em que o sol passa por cada altura (graus)."""
+    J1970, J2000, J0 = 2440588, 2451545, 0.0009
+    noon_local = datetime.combine(day, datetime.min.time(), tzinfo=LOCAL_TZ) + timedelta(hours=12)
+    d = noon_local.timestamp() / 86400 - 0.5 + J1970 - J2000
+    lw, phi = RAD * -lon, RAD * lat
+    n = round(d - J0 - lw / (2 * math.pi))
+    ds = J0 + lw / (2 * math.pi) + n
+    M = RAD * (357.5291 + 0.98560028 * ds)
+    L = M + RAD * (1.9148 * math.sin(M) + 0.02 * math.sin(2 * M) + 0.0003 * math.sin(3 * M)) \
+        + RAD * 102.9372 + math.pi
+    dec = math.asin(math.sin(OBLIQUITY) * math.sin(L))
+    j_noon = J2000 + ds + 0.0053 * math.sin(M) - 0.0069 * math.sin(2 * L)
+
+    def to_dt(j):
+        return datetime.fromtimestamp((j + 0.5 - J1970) * 86400, LOCAL_TZ)
+
+    def pair(angle):
+        cos_w = (math.sin(angle * RAD) - math.sin(phi) * math.sin(dec)) / (math.cos(phi) * math.cos(dec))
+        if not -1 <= cos_w <= 1:
+            return None, None  # sol nunca chega nessa altura (latitudes altas)
+        w = math.acos(cos_w)
+        a = J0 + (w + lw) / (2 * math.pi) + n
+        j_set = J2000 + a + 0.0053 * math.sin(M) - 0.0069 * math.sin(2 * L)
+        return to_dt(j_noon - (j_set - j_noon)), to_dt(j_set)
+
+    rise, set_ = pair(-0.833)
+    dawn, dusk = pair(-6)
+    golden_end, golden_start = pair(6)
+    return {"noon": to_dt(j_noon), "rise": rise, "set": set_, "dawn": dawn, "dusk": dusk,
+            "golden_morning_end": golden_end, "golden_evening_start": golden_start}
+
+
+def sun_extra(lat, lon):
+    fmt = lambda dt: dt.strftime("%Y-%m-%dT%H:%M") if dt else None
+    today = datetime.now(LOCAL_TZ).date()
+    t, y = sun_times(today, lat, lon), sun_times(today - timedelta(days=1), lat, lon)
+    out = {k: fmt(v) for k, v in t.items() if k not in ("rise", "set")}
+    if t["rise"] and y["rise"]:
+        # Quanto o dia cresceu (ou encolheu) desde ontem, em segundos.
+        out["daylight_change"] = round(((t["set"] - t["rise"]) - (y["set"] - y["rise"])).total_seconds())
+    return out
+
+
+# ---------- Fases da lua (Meeus, Astronomical Algorithms, cap. 49) ----------
+# Sem os termos planetários: erro de poucos minutos.
+
+def _phase_jde(k, phase):
+    T = k / 1236.85
+    jde = (2451550.09766 + 29.530588861 * k + 0.00015437 * T ** 2
+           - 0.000000150 * T ** 3 + 0.00000000073 * T ** 4)
+    E = 1 - 0.002516 * T - 0.0000074 * T ** 2
+    M = RAD * (2.5534 + 29.10535670 * k - 0.0000014 * T ** 2 - 0.00000011 * T ** 3)
+    Mp = RAD * (201.5643 + 385.81693528 * k + 0.0107582 * T ** 2 + 0.00001238 * T ** 3)
+    F = RAD * (160.7108 + 390.67050284 * k - 0.0016118 * T ** 2 - 0.00000227 * T ** 3)
+    Om = RAD * (124.7746 - 1.56375588 * k + 0.0020672 * T ** 2 + 0.00000215 * T ** 3)
+    sin = math.sin
+    if phase in (0, 0.5):
+        c = (-0.40720, 0.17241, 0.01608, 0.01039, 0.00739, -0.00514, 0.00208) if phase == 0 else \
+            (-0.40614, 0.17302, 0.01614, 0.01043, 0.00734, -0.00515, 0.00209)
+        jde += (c[0] * sin(Mp) + c[1] * E * sin(M) + c[2] * sin(2 * Mp) + c[3] * sin(2 * F)
+                + c[4] * E * sin(Mp - M) + c[5] * E * sin(Mp + M) + c[6] * E * E * sin(2 * M)
+                - 0.00111 * sin(Mp - 2 * F) - 0.00057 * sin(Mp + 2 * F) + 0.00056 * E * sin(2 * Mp + M)
+                - 0.00042 * sin(3 * Mp) + 0.00042 * E * sin(M + 2 * F) + 0.00038 * E * sin(M - 2 * F)
+                - 0.00024 * E * sin(2 * Mp - M) - 0.00017 * sin(Om))
+    else:
+        jde += (-0.62801 * sin(Mp) + 0.17172 * E * sin(M) - 0.01183 * E * sin(Mp + M)
+                + 0.00862 * sin(2 * Mp) + 0.00804 * sin(2 * F) + 0.00454 * E * sin(Mp - M)
+                + 0.00204 * E * E * sin(2 * M) - 0.00180 * sin(Mp - 2 * F) - 0.00070 * sin(Mp + 2 * F)
+                - 0.00040 * sin(3 * Mp) - 0.00034 * E * sin(2 * Mp - M) + 0.00032 * E * sin(M + 2 * F)
+                + 0.00032 * E * sin(M - 2 * F) - 0.00028 * E * E * sin(Mp + 2 * M)
+                + 0.00027 * E * sin(2 * Mp + M) - 0.00017 * sin(Om))
+        W = (0.00306 - 0.00038 * E * math.cos(M) + 0.00026 * math.cos(Mp) - 0.00002 * math.cos(Mp - M)
+             + 0.00002 * math.cos(Mp + M) + 0.00002 * math.cos(2 * F))
+        jde += W if phase == 0.25 else -W
+    return jde
+
+
+def next_moon_phases(count=4):
+    """Próximas fases principais: [{"phase": "new|first|full|last", "at": "AAAA-MM-DDTHH:MM"}]."""
+    now = datetime.now(LOCAL_TZ)
+    names = {0: "new", 0.25: "first", 0.5: "full", 0.75: "last"}
+    k0 = math.floor((now.year + (now.timetuple().tm_yday - 1) / 365.25 - 2000) * 12.3685) - 1
+    out = []
+    for k in range(k0, k0 + 8):
+        for ph in (0, 0.25, 0.5, 0.75):
+            at = datetime.fromtimestamp((_phase_jde(k + ph, ph) - 2440587.5) * 86400, LOCAL_TZ)
+            if at > now and len(out) < count:
+                out.append({"phase": names[ph], "at": at.strftime("%Y-%m-%dT%H:%M")})
+    return out
+
+
 def get_weather():
     with _weather_lock:
         if _weather_cache["body"] and time.time() - _weather_cache["at"] < WEATHER_TTL:
@@ -174,8 +269,9 @@ def get_weather():
         first = CONFIG["cities"][0]
         body = json.dumps({
             "cities": cities,
-            "sun": {k: data[0]["daily"][k][0] for k in ("sunrise", "sunset", "daylight_duration")},
-            "moon": next_moon_events(first["lat"], first["lon"]),
+            "sun": dict({k: data[0]["daily"][k][0] for k in ("sunrise", "sunset", "daylight_duration")},
+                        **sun_extra(first["lat"], first["lon"])),
+            "moon": dict(next_moon_events(first["lat"], first["lon"]), phases=next_moon_phases()),
         }).encode("utf-8")
         _weather_cache.update(at=time.time(), body=body)
         return body
@@ -389,21 +485,28 @@ def get_calendar():
         if _cal_cache["body"] and time.time() - _cal_cache["at"] < CAL_TTL:
             return _cal_cache["body"]
         agenda = []
-        for name, url in calendar_sources(cal, "ics_urls"):
+        days = cal.get("days", 5)
+        last_day = (datetime.now(LOCAL_TZ).date() + timedelta(days=days)).isoformat()
+        sources = list(calendar_sources(cal, "ics_urls")) + list(calendar_sources(cal, "apps_script_urls"))
+        for name, url in sources:
             if url.startswith("webcal://"):
                 url = "https://" + url[len("webcal://"):]
             text = fetch_cached(url, 30)
-            if text:
-                for ev in build_agenda([text], cal.get("days", 5)):
-                    ev["cal"] = name
-                    agenda.append(ev)
-        # Apps Script (apps-script.gs) já devolve os eventos prontos em JSON.
-        for name, url in calendar_sources(cal, "apps_script_urls"):
-            text = fetch_cached(url, 30)
-            if text:
-                for ev in json.loads(text):
-                    ev["cal"] = name
-                    agenda.append(ev)
+            if not text:
+                continue
+            # Apps Script (apps-script.gs) devolve JSON pronto; .ics é iCalendar. Decide pelo
+            # conteúdo, então tanto faz em qual lista a URL foi colocada.
+            if text.lstrip().startswith("["):
+                try:
+                    events = [ev for ev in json.loads(text) if ev.get("date", "") <= last_day]
+                except ValueError as e:
+                    print("agenda com JSON inválido (%s): %s" % (name or url.split("/")[2], e), flush=True)
+                    continue
+            else:
+                events = build_agenda([text], days)
+            for ev in events:
+                ev["cal"] = name
+                agenda.append(ev)
         # Mesmo evento em duas agendas (ou duplicado na mesma) aparece uma vez.
         seen, unique = set(), []
         for ev in sorted(agenda, key=lambda i: (i["date"], i["time"] or "", i["title"])):
@@ -625,6 +728,11 @@ def validate_config(cfg):
             url = item if isinstance(item, str) else (item or {}).get("url", "")
             if not re.match(r"^(https?|webcal)://", url or ""):
                 return "URL de agenda inválida: %s" % (url or "(vazia)")
+            color = item.get("color") if isinstance(item, dict) else None
+            if color and not re.match(r"^#[0-9a-fA-F]{6}$", color):
+                return "cor de agenda inválida: %s" % color
+    if cal.get("color_style", "border") not in ("border", "fill"):
+        return "estilo de cor da agenda inválido"
     for r in cfg.get("reminders") or []:
         if not isinstance(r, dict) or not str(r.get("text", "")).strip():
             return "todo lembrete precisa de texto"
@@ -740,9 +848,14 @@ class Handler(SimpleHTTPRequestHandler):
                     "night_hours": CONFIG.get("night_hours", "23:00-06:00") or None,
                     "calendar": bool((CONFIG.get("calendar") or {}).get("ics_urls")
                                      or (CONFIG.get("calendar") or {}).get("apps_script_urls")),
-                    # Nomes das agendas, na ordem do config: a página dá uma cor para cada.
+                    # Nomes das agendas, na ordem do config, e a cor de cada uma (None = paleta padrão).
                     "calendars": [n for k in ("ics_urls", "apps_script_urls")
                                   for n, _ in calendar_sources(CONFIG.get("calendar") or {}, k)],
+                    "calendar_colors": [item.get("color") if isinstance(item, dict) else None
+                                        for k in ("ics_urls", "apps_script_urls")
+                                        for item in (CONFIG.get("calendar") or {}).get(k, [])],
+                    # "border": só a borda esquerda colorida; "fill": fundo do evento na cor da agenda.
+                    "calendar_color_style": (CONFIG.get("calendar") or {}).get("color_style", "border"),
                 }).encode("utf-8")
                 return self.send_bytes(body, "application/json; charset=utf-8")
             if path == "/api/time":

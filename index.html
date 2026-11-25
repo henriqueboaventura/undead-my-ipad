@@ -104,12 +104,59 @@ html.faceOn #nightFace { display: inline-block; margin-top: 190px; opacity: 0.32
 .bigClassic { font-size: 190px; font-weight: 400; letter-spacing: -4px; line-height: 1; color: #e6edf3; margin-top: 20px; }
 #bigDate { font-size: 28px; color: #8b949e; margin-top: 26px; }
 
-/* Sol e lua */
-#sky { padding-top: 10px; padding-bottom: 10px; }
-.sunRow { margin: 6px 0 3px; font-size: 20px; }
-.sunItem .muted { font-size: 14px; display: block; margin-bottom: 1px; }
-.moonRow { margin-bottom: 0; padding-top: 4px; }
-#moonCanvas { width: 20px; height: 20px; vertical-align: -2px; margin-right: 4px; }
+/* Sol e lua: só o essencial; o toque abre o painel completo (#skyPanel). */
+#sky { padding-top: 11px; padding-bottom: 11px; font-size: 20px; }
+#sky > div { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; line-height: 24px; }
+#sky .skyIcon { width: 26px; height: 26px; margin-right: 6px; display: block; }
+#moonCanvas { width: 22px; height: 22px; margin-right: 7px; display: block; }
+
+/* Painéis de tela cheia (toque no card abre, toque fecha, somem sozinhos após PANEL_SHOW). */
+.panel { position: fixed; left: 0; top: 0; right: 0; bottom: 0; z-index: 45; background: #0d1117;
+  padding: 18px 22px; display: none; -webkit-flex-direction: column; flex-direction: column; }
+.panel.open { display: -webkit-flex; display: flex; }
+.panelHead { margin-bottom: 14px; }
+.panelTitle { font-size: 26px; font-weight: 500; }
+.panelHint { font-size: 14px; color: #8b949e; }
+.legend span { display: inline-block; margin-left: 14px; font-size: 15px; color: #c9d1d9; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 5px; margin-right: 6px; }
+/* Sol e lua (painel) */
+.spSun { margin-right: 22px; }
+.spMoon { width: 330px; padding-left: 22px; border-left: 1px solid #30363d; }
+.spH { font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #8b949e; margin-bottom: 6px; }
+#sunArc { display: block; }
+.spGrid { -webkit-flex-wrap: wrap; flex-wrap: wrap; margin-top: 6px; }
+.spItem { width: 25%; padding: 4px 0 4px 10px; border-left: 1px solid #30363d; margin-bottom: 10px; }
+.spItem .muted { font-size: 14px; }
+.spItem .v { font-size: 24px; margin-top: 1px; }
+.spItem .note { font-size: 13px; color: #8b949e; }
+.spDays { margin-top: 8px; }
+.spDay { -webkit-flex: 1; flex: 1; text-align: center; padding: 6px 0; border-radius: 10px; font-size: 17px; line-height: 1.45; }
+.spDay.today { background: rgba(255,255,255,0.07); }
+.spDay b { font-weight: 500; font-size: 18px; display: block; }
+.moonBig { width: 140px; height: 140px; display: block; margin: 4px auto 10px; }
+.moonName { font-size: 26px; text-align: center; }
+.moonSub { font-size: 16px; color: #8b949e; text-align: center; margin-top: 2px; }
+.spMoon .spGrid .spItem { width: 50%; }
+.phase { margin-top: 10px; font-size: 18px; }
+.phase canvas { width: 30px; height: 30px; margin-right: 12px; }
+.phase .muted { font-size: 15px; }
+/* Agenda (painel): uma coluna por dia. */
+.apCols { min-height: 0; }
+.apCol { -webkit-flex: 1; flex: 1; min-width: 0; margin-left: 10px; background: rgba(255,255,255,0.04);
+  border-radius: 12px; padding: 12px 10px; }
+.apCol:first-child { margin-left: 0; }
+.apCol.today { background: rgba(88,166,255,0.09); }
+.apDay { font-size: 20px; font-weight: 500; }
+.apDate { font-size: 15px; color: #8b949e; margin-bottom: 4px; }
+.apList { overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0; }
+.apEv { margin-top: 10px; padding: 5px 8px; border-left: 4px solid #58a6ff; border-radius: 0 6px 6px 0;
+  background: rgba(255,255,255,0.04); word-wrap: break-word; }
+.apEv .t { font-size: 14px; font-weight: 600; color: #c9d1d9; }
+.apEv .n { font-size: 16px; line-height: 1.3; margin-top: 1px; }
+.apEv.past { opacity: 0.45; }
+.apEv.now { background: rgba(63,185,80,0.22); }
+.apEv.next { background: rgba(88,166,255,0.18); }
+.apFree { font-size: 16px; color: #8b949e; margin-top: 12px; }
 
 /* Notificações: flutuam no canto inferior direito, empilhando para cima.
    Toque abre as ações (adiar / OK). */
@@ -246,18 +293,10 @@ body.nightOn .toast.danger { display: block; }
       <div id="status"></div>
       <div id="notifPill"></div>
     </div>
-    <div id="sky" class="card col">
-      <div class="label">Sol e Lua</div>
-      <div class="sunRow row between">
-        <div class="sunItem"><span class="muted">Nascer</span>🌅 <span id="sunrise">--:--</span></div>
-        <div class="sunItem"><span class="muted">Pôr</span>🌇 <span id="sunset">--:--</span></div>
-        <div class="sunItem"><span class="muted">Duração</span><span id="daylen">--</span></div>
-      </div>
-      <div class="sunRow moonRow row between sep">
-        <div class="sunItem"><span id="moonName" class="muted"></span><canvas id="moonCanvas" width="40" height="40"></canvas><span id="moonIllum"></span></div>
-        <div class="sunItem"><span id="moonRiseLabel" class="muted">Nasce</span><span id="moonRise">--:--</span></div>
-        <div class="sunItem"><span id="moonSetLabel" class="muted">Põe</span><span id="moonSet">--:--</span></div>
-      </div>
+    <div id="sky" class="card row between center">
+      <div><span id="riseIcon" class="skyIcon"></span><span id="sunrise">--:--</span></div>
+      <div><span id="setIcon" class="skyIcon"></span><span id="sunset">--:--</span></div>
+      <div><canvas id="moonCanvas" width="40" height="40"></canvas><span id="moonIllum"></span></div>
     </div>
     <div id="agenda" class="card col grow"></div>
     <div id="cam" class="card grow">
@@ -274,6 +313,8 @@ body.nightOn .toast.danger { display: block; }
   </div>
 </div>
 
+<div id="skyPanel" class="panel"></div>
+<div id="agendaPanel" class="panel"></div>
 <div id="bigClock"><div id="bigFace"></div><div id="bigDate"></div></div>
 <div id="night"><div id="nightTime"></div><div id="nightFace"></div><div id="nightDate"></div></div>
 <div id="toasts"></div>
@@ -504,6 +545,9 @@ body.nightOn .toast.danger { display: block; }
   }
   $('clock').onclick = function () { showBig(true); };
   $('bigClock').onclick = function () { showBig(false); };
+  $('sky').onclick = function () { if (skyInfo) showPanel('skyPanel'); };
+  $('agenda').onclick = function () { if (agenda && isTap()) showPanel('agendaPanel'); };
+  $('skyPanel').onclick = $('agendaPanel').onclick = function () { showPanel(null); };
 
   function tickClock() {
     var d = now();
@@ -585,8 +629,8 @@ body.nightOn .toast.danger { display: block; }
   }
 
   // Desenha a lua como vista do hemisfério sul (crescente iluminada à esquerda).
-  function drawMoon(age) {
-    var canvas = $('moonCanvas'), ctx = canvas.getContext('2d');
+  function drawMoon(canvas, age) {
+    var ctx = canvas.getContext('2d');
     var size = canvas.width, r = size / 2 - 1, cx = size / 2, cy = size / 2;
     var k = Math.cos(2 * Math.PI * age / SYNODIC);
     var litLeft = age < SYNODIC / 2;
@@ -609,25 +653,180 @@ body.nightOn .toast.danger { display: block; }
     ctx.restore();
   }
 
+  function moonIllum(age) { return Math.round((1 - Math.cos(2 * Math.PI * age / SYNODIC)) / 2 * 100); }
+
   function updateMoon() {
     var age = moonAge(nowAbs());
-    drawMoon(age);
-    $('moonName').textContent = moonPhaseName(age);
-    $('moonIllum').textContent = Math.round((1 - Math.cos(2 * Math.PI * age / SYNODIC)) / 2 * 100) + '%';
+    drawMoon($('moonCanvas'), age);
+    $('moonIllum').textContent = moonIllum(age) + '%';
   }
 
-  function moonTime(id, label, iso) {
-    $(id + 'Label').textContent = label + (iso && iso.substr(0, 10) !== todayISO() ? ' amanhã' : '');
-    $(id).textContent = iso ? hhmm(iso) : '--:--';
-  }
-
-  function renderSky(sun, moon) {
+  // Card compacto; o painel (renderSkyPanel) usa skyInfo inteiro.
+  var skyInfo = null;
+  function renderSky(sun, moon, daily) {
+    skyInfo = { sun: sun, moon: moon, daily: daily };
     $('sunrise').textContent = hhmm(sun.sunrise);
     $('sunset').textContent = hhmm(sun.sunset);
-    var mins = Math.round(sun.daylight_duration / 60);
-    $('daylen').textContent = Math.floor(mins / 60) + 'h' + pad(mins % 60);
-    moonTime('moonRise', 'Nasce', moon.rise);
-    moonTime('moonSet', 'Põe', moon.set);
+    if (openPanel === 'skyPanel') { renderSkyPanel(); drawSunArcNow(); }
+  }
+
+  // ---------- Painéis de tela cheia ----------
+  var PANEL_SHOW = 120; // segundos
+  var openPanel = null, panelTimer = null, lastSwipe = 0;
+  function showPanel(id) {
+    if (openPanel) $(openPanel).className = 'panel';
+    openPanel = id;
+    clearTimeout(panelTimer);
+    if (!id) return;
+    if (id === 'skyPanel') renderSkyPanel(); else renderAgendaPanel();
+    $(id).className = 'panel open';
+    if (id === 'skyPanel') drawSunArcNow();
+    panelTimer = setTimeout(function () { showPanel(null); }, PANEL_SHOW * 1000);
+  }
+  // Toque logo depois de deslizar não conta (deslizar troca o dia da agenda).
+  function isTap() { return Date.now() - lastSwipe > 600; }
+
+  function panelHead(box, title, right) {
+    var head = add(box, el('div', 'panelHead row between center'));
+    add(head, el('div', 'panelTitle', title));
+    if (right) add(head, right);
+    else add(head, el('div', 'panelHint', 'Toque para fechar'));
+    return head;
+  }
+
+  function durTxt(secs) {
+    var mins = Math.round(secs / 60);
+    return Math.floor(mins / 60) + 'h' + pad(mins % 60);
+  }
+  // "+1 min" / "−45 s" desde ontem.
+  function changeTxt(secs) {
+    var sign = secs < 0 ? '−' : '+', a = Math.abs(secs);
+    return sign + (a < 60 ? a + ' s' : Math.round(a / 60) + ' min') + ' vs ontem';
+  }
+  // Dias de calendário entre hoje e "AAAA-MM-DD...".
+  function daysFromToday(iso) {
+    var t = todayISO();
+    return Math.round((Date.UTC(+iso.substr(0, 4), +iso.substr(5, 2) - 1, +iso.substr(8, 2)) -
+      Date.UTC(+t.substr(0, 4), +t.substr(5, 2) - 1, +t.substr(8, 2))) / 86400000);
+  }
+  function whenTxt(iso) {
+    var n = daysFromToday(iso);
+    return n === 0 ? 'hoje' : n === 1 ? 'amanhã' : 'em ' + n + ' dias';
+  }
+  function spItem(parent, label, value, note) {
+    var d = add(parent, el('div', 'spItem'));
+    add(d, el('div', 'muted', label));
+    add(d, el('div', 'v', value));
+    if (note) add(d, el('div', 'note', note));
+  }
+
+  var PHASES = { 'new': ['Lua Nova', 0], first: ['Quarto Crescente', SYNODIC / 4],
+    full: ['Lua Cheia', SYNODIC / 2], last: ['Quarto Minguante', SYNODIC * 3 / 4] };
+
+  var sunArcCanvas = null;
+  function renderSkyPanel() {
+    if (!skyInfo) return;
+    var sun = skyInfo.sun, moon = skyInfo.moon, daily = skyInfo.daily, box = $('skyPanel');
+    box.innerHTML = '';
+    panelHead(box, 'Sol e Lua');
+    var cols = add(box, el('div', 'row grow'));
+
+    // Sol
+    var sc = add(cols, el('div', 'spSun col grow'));
+    add(sc, el('div', 'spH', 'Sol hoje'));
+    sunArcCanvas = add(sc, el('canvas'));
+    sunArcCanvas.id = 'sunArc';
+    var g = add(sc, el('div', 'spGrid row'));
+    spItem(g, 'Nascer', hhmm(sun.sunrise));
+    spItem(g, 'Pôr', hhmm(sun.sunset));
+    spItem(g, 'Duração do dia', durTxt(sun.daylight_duration),
+      sun.daylight_change != null ? changeTxt(sun.daylight_change) : '');
+    if (sun.noon) spItem(g, 'Meio-dia solar', hhmm(sun.noon));
+    if (sun.dawn) spItem(g, 'Primeira luz', hhmm(sun.dawn), 'crepúsculo civil');
+    if (sun.dusk) spItem(g, 'Última luz', hhmm(sun.dusk), 'crepúsculo civil');
+    if (sun.golden_morning_end) spItem(g, 'Hora dourada', 'até ' + hhmm(sun.golden_morning_end), 'manhã');
+    if (sun.golden_evening_start) spItem(g, 'Hora dourada', 'de ' + hhmm(sun.golden_evening_start), 'tarde');
+    if (daily && daily.sunrise) {
+      add(sc, el('div', 'spH', 'Próximos dias')).style.marginTop = '6px';
+      var days = add(sc, el('div', 'spDays row'));
+      for (var i = 0; i < daily.time.length; i++) {
+        var d = add(days, el('div', 'spDay' + (i === 0 ? ' today' : '')));
+        add(d, el('b', '', i === 0 ? 'Hoje' : DIAS[ymd(daily.time[i]).getDay()]));
+        add(d, el('div', '', '↑ ' + hhmm(daily.sunrise[i])));
+        add(d, el('div', '', '↓ ' + hhmm(daily.sunset[i])));
+        add(d, el('div', 'muted', durTxt(daily.daylight_duration[i])));
+      }
+    }
+
+    // Lua
+    var mc = add(cols, el('div', 'spMoon col'));
+    add(mc, el('div', 'spH', 'Lua'));
+    var age = moonAge(nowAbs());
+    var big = add(mc, el('canvas', 'moonBig'));
+    big.width = big.height = 280;
+    drawMoon(big, age);
+    add(mc, el('div', 'moonName', moonPhaseName(age)));
+    add(mc, el('div', 'moonSub', moonIllum(age) + '% iluminada  ·  ' + age.toFixed(1).replace('.', ',') + ' dias'));
+    var mg = add(mc, el('div', 'spGrid row'));
+    mg.style.marginTop = '14px';
+    spItem(mg, 'Nasce', moon.rise ? hhmm(moon.rise) : '--:--', moon.rise ? whenTxt(moon.rise) : '');
+    spItem(mg, 'Põe', moon.set ? hhmm(moon.set) : '--:--', moon.set ? whenTxt(moon.set) : '');
+    if (moon.phases && moon.phases.length) {
+      add(mc, el('div', 'spH', 'Próximas fases')).style.marginTop = '4px';
+      for (i = 0; i < moon.phases.length; i++) {
+        var ph = moon.phases[i], info = PHASES[ph.phase], row = add(mc, el('div', 'phase row center'));
+        var c = add(row, el('canvas'));
+        c.width = c.height = 60;
+        drawMoon(c, info[1]);
+        var txt = add(row, el('div'));
+        add(txt, el('div', '', info[0]));
+        add(txt, el('div', 'muted', DIAS[ymd(ph.at).getDay()] + ' ' + ph.at.substr(8, 2) + '/' + ph.at.substr(5, 2) +
+          ' às ' + hhmm(ph.at) + '  ·  ' + whenTxt(ph.at)));
+      }
+    }
+  }
+
+  // Arco do sol: nascer à esquerda, pôr à direita; trecho já percorrido em amarelo.
+  function drawSunArcNow() {
+    if (!sunArcCanvas || !skyInfo) return;
+    var canvas = sunArcCanvas, W = canvas.parentNode.offsetWidth, H = 170, dpr = window.devicePixelRatio || 1;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+    var ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    var sun = skyInfo.sun, rise = localTime(sun.sunrise), set = localTime(sun.sunset), t = now().getTime();
+    var p = (t - rise) / (set - rise), horizon = H - 30, x0 = 60, x1 = W - 60, peak = H - 64;
+    function pt(f) { return [x0 + (x1 - x0) * f, horizon - Math.sin(Math.PI * f) * peak]; }
+
+    ctx.strokeStyle = '#30363d'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, horizon); ctx.lineTo(W, horizon); ctx.stroke();
+    ctx.strokeStyle = 'rgba(139,148,158,0.6)';
+    if (ctx.setLineDash) ctx.setLineDash([4, 6]);
+    ctx.beginPath();
+    for (var i = 0; i <= 60; i++) { var a = pt(i / 60); i ? ctx.lineTo(a[0], a[1]) : ctx.moveTo(a[0], a[1]); }
+    ctx.stroke();
+    if (ctx.setLineDash) ctx.setLineDash([]);
+    var done = Math.max(0, Math.min(1, p));
+    if (done > 0) {
+      ctx.strokeStyle = '#f0b72f'; ctx.lineWidth = 3;
+      ctx.beginPath();
+      for (i = 0; i <= 60; i++) { a = pt(done * i / 60); i ? ctx.lineTo(a[0], a[1]) : ctx.moveTo(a[0], a[1]); }
+      ctx.stroke();
+    }
+    ctx.font = '15px "Helvetica Neue", Helvetica, Arial, sans-serif';
+    ctx.fillStyle = '#8b949e'; ctx.textAlign = 'center';
+    ctx.fillText('↑ ' + hhmm(sun.sunrise), x0, horizon + 20);
+    ctx.fillText('↓ ' + hhmm(sun.sunset), x1, horizon + 20);
+    if (sun.noon) ctx.fillText('meio-dia ' + hhmm(sun.noon), (x0 + x1) / 2, horizon - peak - 10);
+    if (p >= 0 && p <= 1) {
+      var s = pt(p), glow = ctx.createRadialGradient(s[0], s[1], 0, s[0], s[1], 34);
+      glow.addColorStop(0, 'rgba(253,184,19,0.55)'); glow.addColorStop(1, 'rgba(253,184,19,0)');
+      ctx.fillStyle = glow; ctx.fillRect(s[0] - 34, s[1] - 34, 68, 68);
+      ctx.fillStyle = '#fdb813';
+      ctx.beginPath(); ctx.arc(s[0], s[1], 11, 0, 2 * Math.PI); ctx.fill();
+    } else {
+      ctx.fillText(p < 0 ? 'O sol ainda não nasceu' : 'O sol já se pôs', (x0 + x1) / 2, horizon - 14);
+    }
   }
 
   // ---------- Tempo ----------
@@ -685,6 +884,18 @@ body.nightOn .toast.danger { display: block; }
       '<circle cx="32" cy="58" r="3.5"/><circle cx="44" cy="51" r="3.5"/></g>',
     storm: cloudSvg(CLOUD_UP, '#aeb7c2') + '<polygon points="34,38 23,54 31,54 27,63 41,46 33,46 38,38" fill="#fdb813"/>'
   };
+  // Nascer/pôr: meio sol no horizonte com seta (emoji no iOS 9 desalinha e não escala).
+  function horizonSvg(up) {
+    var arrow = up ? 'M32 4L32 20M25 11L32 4L39 11' : 'M32 4L32 20M25 13L32 20L39 13';
+    return '<svg class="wi" style="width:100%;height:100%" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">' +
+      '<path d="M18 48A14 14 0 0 1 46 48Z" fill="' + (up ? '#fdb813' : '#f0883e') + '"/>' +
+      linesSvg('#fdb813', [[8, 40, 12, 38], [56, 40, 52, 38], [17, 29, 20, 32], [47, 29, 44, 32]]) +
+      linesSvg('#8b949e', [[4, 52, 60, 52]]) +
+      '<path d="' + arrow + '" fill="none" stroke="#e6edf3" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+  $('riseIcon').innerHTML = horizonSvg(true);
+  $('setIcon').innerHTML = horizonSvg(false);
+
   function weatherIcon(cls, name) {
     var e = el('div', cls);
     e.innerHTML = '<svg class="wi" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">' + ICONS[name] + '</svg>';
@@ -1091,6 +1302,7 @@ body.nightOn .toast.danger { display: block; }
       if (x === null) return;
       var dx = e.changedTouches[0].clientX - x, dy = e.changedTouches[0].clientY - y;
       x = null;
+      if (Math.abs(dx) > 10 || Math.abs(dy) > 10) lastSwipe = Date.now();
       if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) fn(dx < 0 ? 1 : -1);
     });
   }
@@ -1111,6 +1323,22 @@ body.nightOn .toast.danger { display: block; }
   var AGENDA_DAYS = 5, AGENDA_BACK = 60;
   var agenda = null, calNames = [], agendaDay = 0, agendaShown = null, agendaTimer = null;
   var CAL_COLORS = ['#58a6ff', '#f0883e', '#3fb950', '#bc8cff', '#e3b341'];
+  var calColors = [], calFill = false; // do config: cor escolhida por agenda e "fill" (fundo) ou borda
+
+  function calColor(name) {
+    var i = Math.max(0, calNames.indexOf(name));
+    return calColors[i] || CAL_COLORS[i % CAL_COLORS.length];
+  }
+  function rgba(hex, a) {
+    return 'rgba(' + parseInt(hex.substr(1, 2), 16) + ',' + parseInt(hex.substr(3, 2), 16) + ',' +
+      parseInt(hex.substr(5, 2), 16) + ',' + a + ')';
+  }
+  // Borda sempre na cor da agenda; no modo fundo, o evento inteiro também (mais forte no "agora").
+  function paintEvent(ev, name, cls) {
+    var c = calColor(name);
+    ev.style.borderLeftColor = c;
+    if (calFill) ev.style.background = rgba(c, cls === ' now' ? 0.55 : cls === ' next' ? 0.4 : 0.26);
+  }
 
   function renderAgenda() {
     if (!agenda) return;
@@ -1151,7 +1379,7 @@ body.nightOn .toast.danger { display: block; }
 
   function agendaItem(parent, e, cls, label) {
     var ev = add(parent, el('div', 'agEv' + cls));
-    ev.style.borderLeftColor = CAL_COLORS[Math.max(0, calNames.indexOf(e.cal)) % CAL_COLORS.length];
+    paintEvent(ev, e.cal, cls);
     if (label) add(ev, el('b', '', label));
     ev.appendChild(document.createTextNode((label ? ' ' : '') + e.title));
     return ev;
@@ -1195,6 +1423,52 @@ body.nightOn .toast.danger { display: block; }
     agendaTimer = setTimeout(function () { agendaDay = 0; renderAgenda(); }, AGENDA_BACK * 1000);
   });
 
+  // Painel: uma coluna por dia (AGENDA_DAYS), com todos os eventos e o horário de fim.
+  function renderAgendaPanel() {
+    if (!agenda) return;
+    var box = $('agendaPanel');
+    box.innerHTML = '';
+    var legend = null;
+    if (calNames.length > 1) {
+      legend = el('div', 'legend');
+      for (var k = 0; k < calNames.length; k++) {
+        var it = add(legend, el('span'));
+        add(it, el('i')).style.background = calColor(calNames[k]);
+        it.appendChild(document.createTextNode(calNames[k]));
+      }
+    }
+    panelHead(box, 'Agenda', legend);
+    var cols = add(box, el('div', 'apCols row grow')), t0 = now().getTime();
+    for (var d = 0; d < AGENDA_DAYS; d++) {
+      var t = now();
+      t.setUTCDate(t.getUTCDate() + d);
+      var iso = t.getUTCFullYear() + '-' + pad(t.getUTCMonth() + 1) + '-' + pad(t.getUTCDate());
+      var col = add(cols, el('div', 'apCol col' + (d === 0 ? ' today' : '')));
+      add(col, el('div', 'apDay', d === 0 ? 'Hoje' : d === 1 ? 'Amanhã' : DIAS_LONGOS[t.getUTCDay()]));
+      add(col, el('div', 'apDate', pad(t.getUTCDate()) + '/' + pad(t.getUTCMonth() + 1)));
+      var list = add(col, el('div', 'apList grow')), n = 0, nextDone = false;
+      for (var i = 0; i < agenda.length; i++) {
+        var e = agenda[i];
+        if (e.date !== iso) continue;
+        n++;
+        var cls = '';
+        if (d === 0 && e.time) {
+          var start = localTime(e.date + 'T' + e.time);
+          var end = e.end ? localTime(e.date + 'T' + e.end) : start + 3600000;
+          if (end <= t0) cls = ' past';
+          else if (start <= t0) cls = ' now';
+          else if (!nextDone) { cls = ' next'; nextDone = true; }
+        }
+        var ev = add(list, el('div', 'apEv' + cls));
+        paintEvent(ev, e.cal, cls);
+        add(ev, el('div', 't', e.time ? e.time + (e.end ? ' – ' + e.end : '') + (cls === ' now' ? '  ·  agora' : '')
+          : 'Dia todo'));
+        add(ev, el('div', 'n', e.title));
+      }
+      if (!n) add(list, el('div', 'apFree', 'Nada na agenda'));
+    }
+  }
+
   // Chamado a cada segundo pelo relógio: redesenha a cada minuto (agora/próximo) e,
   // ao virar o dia, a partir do novo Hoje.
   function agendaStamp() { return todayISO() + ' ' + now().getUTCHours() + ':' + now().getUTCMinutes(); }
@@ -1206,6 +1480,7 @@ body.nightOn .toast.danger { display: block; }
     getJSON('/api/calendar', function (list) {
       agenda = list;
       renderAgenda();
+      if (openPanel === 'agendaPanel') renderAgendaPanel();
       next(30 * 60 * 1000);
     }, function () { next(waking() ? 5000 : 60 * 1000); });
   });
@@ -1223,7 +1498,7 @@ body.nightOn .toast.danger { display: block; }
         renderMain();
         weekCities = data.cities;
         renderWeek();
-        renderSky(data.sun, data.moon);
+        renderSky(data.sun, data.moon, alertCity ? alertCity.daily : null);
         updateSkyBg(data);
       } catch (e) {
         // Ex.: servidor antigo ainda rodando com formato de dados diferente.
@@ -1494,6 +1769,8 @@ body.nightOn .toast.danger { display: block; }
     tickNight();
     if (cfg.calendar) {
       calNames = cfg.calendars || [];
+      calColors = cfg.calendar_colors || [];
+      calFill = cfg.calendar_color_style === 'fill';
       $('left').className += ' hasAgenda';
       updateAgenda();
     }
