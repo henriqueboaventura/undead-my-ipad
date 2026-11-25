@@ -960,8 +960,9 @@ body.nightOn .toast.danger { display: block; }
     var uv = uvLevel(cur.uv_index);
     detail(det, 'Sensação', Math.round(cur.apparent_temperature) + '°');
     detail(det, 'Umidade', cur.relative_humidity_2m + '%');
-    detail(det, 'Vento', Math.round(cur.wind_speed_10m) + ' km/h ' + windDir(cur.wind_direction_10m));
-    detail(det, 'Rajadas', Math.round(cur.wind_gusts_10m) + ' km/h');
+    // Unidade e direção menores: em 26px "17 km/h SE" não cabe no terço do card no iPad.
+    detail(det, 'Vento', Math.round(cur.wind_speed_10m), null, 'km/h ' + windDir(cur.wind_direction_10m));
+    detail(det, 'Rajadas', Math.round(cur.wind_gusts_10m), null, 'km/h');
     detail(det, 'Índice UV', Math.round(cur.uv_index), 'uv' + uv[0], uv[1]);
     detail(det, 'Nuvens', cur.cloud_cover + '%');
 
